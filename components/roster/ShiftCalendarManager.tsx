@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 import { cn, getInitials, getAvatarColor } from "@/lib/utils";
 import { MOCK_USERS, MOCK_PROJECTS } from "@/lib/mock-data";
+import {
+  BUILTIN_HOLIDAYS_2026, DEFAULT_TOGGLES,
+  CUSTOM_HOLIDAYS_KEY, CALENDAR_TOGGLES_KEY,
+  type Holiday, type CalendarToggles,
+} from "@/lib/holidays";
 import type { Shift, ShiftPattern, ShiftStatus, User, UserRole, SessionUser } from "@/types";
 import { Button }    from "@/components/ui/button";
 import { Input }     from "@/components/ui/input";
@@ -99,7 +104,7 @@ function getOverloadInfo(
   let maxShiftsOnDay = 0;
 
   weekDates.forEach((d, idx) => {
-    const ds     = d.toISOString().slice(0, 10);
+    const ds     = dateStr(d);
     const active = (userMap?.get(ds) ?? []).filter((s) => s.status !== "CANCELLED");
     if (active.length === 0) return;
 
@@ -278,6 +283,51 @@ function OverloadSummaryStrip({
   );
 }
 
+// ── Holiday helpers ────────────────────────────────────────────────────────
+
+function useHolidayMap(): Map<string, Holiday[]> {
+  const [toggles, setToggles] = useState<CalendarToggles>(DEFAULT_TOGGLES);
+  const [custom, setCustom]   = useState<Holiday[]>([]);
+
+  useEffect(() => {
+    const getToggles = () => {
+      try { const r = localStorage.getItem(CALENDAR_TOGGLES_KEY); return r ? { ...DEFAULT_TOGGLES, ...JSON.parse(r) } : DEFAULT_TOGGLES; }
+      catch { return DEFAULT_TOGGLES; }
+    };
+    const getCustom = () => {
+      try { const r = localStorage.getItem(CUSTOM_HOLIDAYS_KEY); return r ? JSON.parse(r) : []; }
+      catch { return []; }
+    };
+    setToggles(getToggles());
+    setCustom(getCustom());
+    const handler = (e: StorageEvent) => {
+      if (e.key === CALENDAR_TOGGLES_KEY) setToggles(getToggles());
+      if (e.key === CUSTOM_HOLIDAYS_KEY)  setCustom(getCustom());
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  return useMemo(() => {
+    const all = [
+      ...BUILTIN_HOLIDAYS_2026.filter((h) => {
+        if (h.type === "BOTH") return toggles.IN || toggles.US;
+        if (h.type === "IN")   return toggles.IN;
+        if (h.type === "US")   return toggles.US;
+        return false;
+      }),
+      ...custom,
+    ];
+    const map = new Map<string, Holiday[]>();
+    for (const h of all) {
+      const arr = map.get(h.date) ?? [];
+      arr.push(h);
+      map.set(h.date, arr);
+    }
+    return map;
+  }, [toggles, custom]);
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function getWeekDates(offset: number): Date[] {
@@ -293,7 +343,13 @@ function getWeekDates(offset: number): Date[] {
   });
 }
 
-function dateStr(d: Date) { return d.toISOString().slice(0, 10); }
+function dateStr(d: Date) {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+}
 
 function isToday(d: Date) {
   const t = new Date();
@@ -523,7 +579,7 @@ function BulkAssignDialog({
   onSubmit:   (data: { pattern: ShiftPattern; startDate: string; endDate: string; notes: string }) => void;
   submitting: boolean;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateStr(new Date());
   const [pattern,   setPattern]   = useState<ShiftPattern>("MORNING");
   const [startDate, setStartDate] = useState(today);
   const [endDate,   setEndDate]   = useState(today);
@@ -751,7 +807,8 @@ export function ShiftCalendarManager({ shifts: initialShifts, currentUser }: Shi
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
-  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const weekDates    = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const holidayMap   = useHolidayMap();
 
   const projectMembers = useMemo(() => {
     // Only show users who have at least one non-cancelled shift in the selected project.
@@ -1153,15 +1210,32 @@ export function ShiftCalendarManager({ shifts: initialShifts, currentUser }: Shi
                   Member
                 </th>
                 {weekDates.map((d, i) => {
-                  const today = isToday(d);
+                  const todayCol = isToday(d);
+                  const ds       = dateStr(d);
+                  const hols     = holidayMap.get(ds) ?? [];
+                  const isHol    = hols.length > 0;
                   return (
                     <th key={i} className={cn(
                       "border-b border-r border-gray-100 px-2 py-2.5 text-center font-medium min-w-[90px]",
-                      today ? "bg-indigo-50 text-indigo-700" : "bg-gray-50 text-gray-600"
+                      isHol ? "bg-orange-50 text-orange-700" : todayCol ? "bg-indigo-50 text-indigo-700" : "bg-gray-50 text-gray-600"
                     )}>
                       <div className="text-[11px]">{DAY_LABELS[i]}</div>
-                      <div className={cn("text-base font-bold leading-none mt-0.5", today ? "text-indigo-600" : "text-gray-800")}>{d.getDate()}</div>
+                      <div className={cn("text-base font-bold leading-none mt-0.5", isHol ? "text-orange-700" : todayCol ? "text-indigo-600" : "text-gray-800")}>
+                        {d.getDate()}
+                      </div>
                       <div className="text-[9px] opacity-60 mt-0.5">{d.toLocaleDateString("en-GB", { month: "short" })}</div>
+                      {isHol && (
+                        <div className="mt-1 space-y-0.5">
+                          {hols.map((h) => (
+                            <div key={h.name} className="truncate rounded bg-orange-100 px-1 py-0.5 text-[9px] font-semibold text-orange-700 leading-tight">
+                              {h.type === "IN" ? "🇮🇳" : h.type === "US" ? "🇺🇸" : h.type === "BOTH" ? "🌐" : "⭐"} {h.name}
+                            </div>
+                          ))}
+                          <div className="rounded bg-orange-200/60 px-1 py-0.5 text-[9px] font-bold text-orange-800 leading-tight">
+                            🏖️ On-Call
+                          </div>
+                        </div>
+                      )}
                     </th>
                   );
                 })}
@@ -1268,13 +1342,15 @@ export function ShiftCalendarManager({ shifts: initialShifts, currentUser }: Shi
                     const hasActive      = activeShifts.length > 0;
                     const isDoubleBooked = activeShifts.length > 1;
                     const isOffDayViol   = overload?.offDayViolations.some((v) => v.dayStr === ds) ?? false;
+                    const isHoliday      = (holidayMap.get(ds) ?? []).length > 0;
 
                     return (
                       <td key={di} className={cn(
                         "border-r border-gray-100 px-1.5 py-1.5 align-top min-w-[90px] relative",
-                        today && !isDoubleBooked && !isOffDayViol && "bg-indigo-50/30",
-                        isDoubleBooked && "bg-red-50/60",
-                        isOffDayViol && !isDoubleBooked && "bg-orange-50/60",
+                        isDoubleBooked ? "bg-red-50/60" :
+                        isOffDayViol   ? "bg-orange-50/60" :
+                        isHoliday      ? "bg-orange-50/40" :
+                        today          ? "bg-indigo-50/30" : "",
                       )}>
                         {/* Overload indicator corner flag */}
                         {(isDoubleBooked || isOffDayViol) && (

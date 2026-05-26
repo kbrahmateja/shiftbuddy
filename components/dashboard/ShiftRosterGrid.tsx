@@ -106,7 +106,12 @@ function useHolidays() {
   ];
 
   const getForDay = (day: Date): Holiday[] => {
-    const key = day.toISOString().slice(0, 10);
+    // Use local date (not UTC) to avoid timezone off-by-one issues
+    const key = [
+      day.getFullYear(),
+      String(day.getMonth() + 1).padStart(2, "0"),
+      String(day.getDate()).padStart(2, "0"),
+    ].join("-");
     return allHolidays.filter((h) => h.date === key);
   };
 
