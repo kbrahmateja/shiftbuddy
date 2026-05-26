@@ -1,0 +1,576 @@
+// ============================================================
+// ShiftBuddy — GAPINC / HCL Support Operations Platform
+// Prisma Schema v1.0
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+/// Roles governing what a user can see and do throughout the system
+enum UserRole {
+  CONTRACTOR      // HCL vendor contractor — individual contributor
+  EMPLOYEE        // HCL full-time employee — cross-functional contributor
+  LEAD            // HCL Shift / Technical Lead — shift oversight & handovers
+  MANAGER         // HCL Delivery / Operations Manager — resource planning & governance
+  GAP_STAKEHOLDER // GAPINC client — read-only executive visibility tier
+}
+
+/// The originating communication channel for each operational update
+enum Source {
+  PAGERDUTY   // Automated high-severity alert from PagerDuty
+  SERVICENOW  // Standard IT ticket / incident raised in ServiceNow
+  SLACK       // Operational ping or update posted in a Slack channel
+  TEAMS       // Update or alert shared via MS Teams
+  VERBAL      // Word-of-mouth callout during standup or handover
+  OTHER       // Any other source not captured above
+}
+
+/// Severity classification aligned with ITIL priority levels
+enum Severity {
+  P1_CRITICAL // Business down; immediate escalation required
+  P2_HIGH     // Major degradation; resolve within 4 hours
+  P3_MEDIUM   // Moderate impact; resolve within 8 hours
+  P4_LOW      // Minor issue or informational; no SLA breach risk
+  INFORMATIONAL // Pure informational log — no action required
+}
+
+/// Standard shift patterns across 24×7 global support operations
+enum ShiftPattern {
+  GENERAL    // Standard 9–5 business hours
+  MORNING    // Early-morning shift (e.g., 6 AM–2 PM local)
+  AFTERNOON  // Mid-day shift (e.g., 2 PM–10 PM local)
+  NIGHT      // Overnight shift (e.g., 10 PM–6 AM local)
+  WEEKEND    // Saturday / Sunday coverage rotation
+  ON_CALL    // On-call / pager-duty standby rotation
+}
+
+/// Status lifecycle for a single shift slot
+enum ShiftStatus {
+  SCHEDULED   // Shift created and assigned; not yet started
+  ACTIVE      // Shift is currently in progress
+  HANDED_OVER // Outgoing lead has filed the handover note
+  COMPLETED   // Incoming shift has acknowledged; shift fully closed
+  CANCELLED   // Shift cancelled (leave / emergency)
+}
+
+/// Status lifecycle for update / incident log entries
+enum LogStatus {
+  OPEN        // Newly logged; awaiting action
+  IN_PROGRESS // Being actively worked
+  RESOLVED    // Fully resolved; awaiting lead validation
+  VALIDATED   // Lead has confirmed resolution
+  CLOSED      // Archived; no further action needed
+  ESCALATED   // Escalated to higher tier or GAPINC directly
+}
+
+/// Status for peer shift-swap requests
+enum SwapStatus {
+  PENDING   // Submitted; awaiting lead approval
+  APPROVED  // Lead approved the swap
+  REJECTED  // Lead rejected the swap
+  CANCELLED // Requester cancelled before decision
+}
+
+/// Status for formal shift handover records
+enum HandoverStatus {
+  DRAFT       // Being compiled by outgoing lead
+  SUBMITTED   // Outgoing lead has submitted the handover note
+  ACKNOWLEDGED // Incoming lead has acknowledged and accepted
+  DISPUTED    // Incoming lead raised a concern on the note
+}
+
+/// Notification delivery channels
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  TEAMS
+}
+
+// ─────────────────────────────────────────────
+// CORE DOMAIN MODELS
+// ─────────────────────────────────────────────
+
+/// A GAPINC / HCL programme or workstream (e.g., "Retail Platform Support")
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique // Short code used in reports (e.g., "RPS-01")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  partnerTeams       PartnerTeam[]
+  memberships        ProjectMembership[]
+  shifts             Shift[]
+  dailyUpdateLogs    DailyUpdateLog[]
+  handovers          ShiftHandover[]
+  swapRequests       ShiftSwapRequest[]
+  dailyDiaries       DailyDiary[]
+
+  @@index([code])
+  @@map("projects")
+}
+
+/// A Partner Team (PT) is a sub-team within a Project (e.g., "PT-Alpha", "Infra Team")
+model PartnerTeam {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   // Short identifier (e.g., "PT-ALPHA")
+  description String?
+  timezone    String   @default("UTC") // IANA timezone string (e.g., "Asia/Kolkata")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // FK
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Relations
+  memberships     ProjectMembership[]
+  shifts          Shift[]
+  dailyUpdateLogs DailyUpdateLog[]
+
+  @@unique([projectId, code])
+  @@index([projectId])
+  @@map("partner_teams")
+}
+
+/// A platform user — contractor, HCL employee, lead, manager, or GAPINC stakeholder
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  displayName    String?
+  avatarUrl      String?
+  role           UserRole
+  timezone       String    @default("UTC") // User's home timezone (IANA)
+  employeeId     String?   @unique          // HCL / GAPINC employee / vendor ID
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  memberships          ProjectMembership[]
+  shiftsAssigned       Shift[]              @relation("AssignedUser")
+  shiftsApproved       Shift[]              @relation("ApprovedByLead")
+  dailyUpdateLogs      DailyUpdateLog[]     @relation("LogAuthor")
+  validatedLogs        DailyUpdateLog[]     @relation("LogValidator")
+  outgoingHandovers    ShiftHandover[]      @relation("OutgoingLead")
+  incomingHandovers    ShiftHandover[]      @relation("IncomingLead")
+  swapRequestsFrom     ShiftSwapRequest[]   @relation("SwapRequester")
+  swapRequestsTo       ShiftSwapRequest[]   @relation("SwapRecipient")
+  swapRequestsApproved ShiftSwapRequest[]   @relation("SwapApprover")
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  dailyDiaries         DailyDiary[]         @relation("DiaryAuthor")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+/// Junction table mapping Users to Projects and Partner Teams with role overrides
+model ProjectMembership {
+  id            String    @id @default(cuid())
+  userId        String
+  projectId     String
+  partnerTeamId String?   // null = project-level membership (e.g., Manager, Stakeholder)
+  roleOverride  UserRole? // Optional per-project role escalation
+  joinedAt      DateTime  @default(now())
+  leftAt        DateTime? // Null = currently active member
+  isActive      Boolean   @default(true)
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partnerTeam PartnerTeam? @relation(fields: [partnerTeamId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, projectId, partnerTeamId])
+  @@index([userId])
+  @@index([projectId])
+  @@map("project_memberships")
+}
+
+// ─────────────────────────────────────────────
+// SHIFT MANAGEMENT
+// ─────────────────────────────────────────────
+
+/// A single shift slot in the roster calendar
+model Shift {
+  id            String       @id @default(cuid())
+  pattern       ShiftPattern
+  status        ShiftStatus  @default(SCHEDULED)
+  startTime     DateTime     // Stored in UTC; display layer converts to local TZ
+  endTime       DateTime
+  timezone      String       // The operative timezone for this shift (IANA)
+  notes         String?
+
+  // FK
+  projectId     String
+  partnerTeamId String?
+  assignedToId  String
+  approvedById  String?
+
+  // Relations
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partnerTeam    PartnerTeam? @relation(fields: [partnerTeamId], references: [id], onDelete: SetNull)
+  assignedTo     User         @relation("AssignedUser", fields: [assignedToId], references: [id])
+  approvedBy     User?        @relation("ApprovedByLead", fields: [approvedById], references: [id])
+  dailyLogs      DailyUpdateLog[]
+  handoverAsOutgoing ShiftHandover? @relation("OutgoingShift")
+  handoverAsIncoming ShiftHandover? @relation("IncomingShift")
+  swapRequests   ShiftSwapRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, startTime])
+  @@index([assignedToId, startTime])
+  @@index([status])
+  @@map("shifts")
+}
+
+// ─────────────────────────────────────────────
+// INCIDENT & UPDATE LOGGING
+// ─────────────────────────────────────────────
+
+/// The core operational log entry — every update/incident ingested during a shift
+model DailyUpdateLog {
+  id              String     @id @default(cuid())
+  title           String     // Short human-readable title
+  description     String     // Full update body / incident description
+  source          Source     // Mandatory: originating channel
+  severity        Severity
+  status          LogStatus  @default(OPEN)
+
+  // External reference IDs — format-validated at application layer
+  // ServiceNow: INC0001234 / CHG0001234 / RITM0001234
+  snowTicketId    String?    @db.VarChar(20)
+  // PagerDuty: Full incident URL or ID (e.g., P1A2B3C or full URL)
+  pagerDutyRef    String?    @db.VarChar(255)
+  // Slack: message permalink URL
+  slackMessageUrl String?    @db.VarChar(512)
+  // Teams: message deep-link URL
+  teamsMessageUrl String?    @db.VarChar(512)
+
+  // Blocking dependency flag
+  isBlockingDependency Boolean @default(false)
+  blockingReason       String?
+
+  // Timing
+  occurredAt      DateTime  // When the incident / update occurred (user-reported)
+  acknowledgedAt  DateTime? // When the incident was first acknowledged
+  resolvedAt      DateTime? // When the incident was fully resolved
+  loggedAt        DateTime  @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // FK
+  shiftId       String
+  projectId     String
+  partnerTeamId String?
+  authorId      String   // Who logged this entry
+  validatedById String?  // Lead who validated this entry
+
+  // Relations
+  shift       Shift        @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partnerTeam PartnerTeam? @relation(fields: [partnerTeamId], references: [id], onDelete: SetNull)
+  author      User         @relation("LogAuthor", fields: [authorId], references: [id])
+  validatedBy User?        @relation("LogValidator", fields: [validatedById], references: [id])
+  tags        LogTag[]
+  auditLogs   AuditLog[]
+
+  @@index([shiftId])
+  @@index([projectId, loggedAt])
+  @@index([source])
+  @@index([severity])
+  @@index([status])
+  @@index([snowTicketId])
+  @@map("daily_update_logs")
+}
+
+/// Free-form classification tags on log entries (e.g., "database", "auth", "infra")
+model LogTag {
+  id    String @id @default(cuid())
+  label String @db.VarChar(64)
+  color String @default("#6b7280") // hex color for UI badge
+
+  logId String
+  log   DailyUpdateLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([logId])
+  @@map("log_tags")
+}
+
+// ─────────────────────────────────────────────
+// SHIFT HANDOVER PROTOCOL
+// ─────────────────────────────────────────────
+
+/// A formal handover record compiled by the outgoing lead for the incoming lead
+model ShiftHandover {
+  id                String        @id @default(cuid())
+  status            HandoverStatus @default(DRAFT)
+
+  // Compiled summary sections
+  openItemsSummary  String        // Markdown — pending issues at handover time
+  resolvedSummary   String        // Markdown — what was resolved during the shift
+  escalationNotes   String?       // Any items that need immediate incoming attention
+  incomingLeadNotes String?       // Notes added by incoming lead on acknowledgment
+  disputeReason     String?       // Reason if incoming lead marks DISPUTED
+
+  // Timestamps
+  compiledAt        DateTime?     // When draft was first compiled
+  submittedAt       DateTime?     // When outgoing lead finalized submission
+  acknowledgedAt    DateTime?     // When incoming lead confirmed receipt
+  dueBy             DateTime?     // SLA deadline for acknowledgment
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // FK
+  projectId        String
+  outgoingShiftId  String  @unique
+  incomingShiftId  String  @unique
+  outgoingLeadId   String
+  incomingLeadId   String
+
+  // Relations
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outgoingShift Shift   @relation("OutgoingShift", fields: [outgoingShiftId], references: [id])
+  incomingShift Shift   @relation("IncomingShift", fields: [incomingShiftId], references: [id])
+  outgoingLead  User    @relation("OutgoingLead", fields: [outgoingLeadId], references: [id])
+  incomingLead  User    @relation("IncomingLead", fields: [incomingLeadId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+  @@map("shift_handovers")
+}
+
+// ─────────────────────────────────────────────
+// SHIFT SWAP REQUESTS
+// ─────────────────────────────────────────────
+
+/// Peer-to-peer shift swap request, requires lead approval
+model ShiftSwapRequest {
+  id            String     @id @default(cuid())
+  status        SwapStatus @default(PENDING)
+  reason        String     // Why the requester needs the swap
+  rejectionNote String?    // Lead note on rejection
+  requestedAt   DateTime   @default(now())
+  decidedAt     DateTime?
+
+  // FK
+  shiftId      String
+  projectId    String
+  requesterId  String  // Person wanting to give up their shift
+  recipientId  String  // Person willing to take the shift
+  approvedById String? // Lead who approved / rejected
+
+  // Relations
+  shift     Shift   @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester User    @relation("SwapRequester", fields: [requesterId], references: [id])
+  recipient User    @relation("SwapRecipient", fields: [recipientId], references: [id])
+  approvedBy User?  @relation("SwapApprover", fields: [approvedById], references: [id])
+
+  @@index([shiftId])
+  @@index([requesterId])
+  @@index([status])
+  @@map("shift_swap_requests")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  body      String
+  linkUrl   String?             // Deep-link back to the relevant entity
+  isRead    Boolean             @default(false)
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// DAILY DIARY
+// ─────────────────────────────────────────────
+
+/// Lifecycle of a team member's end-of-shift diary entry
+enum DiaryStatus {
+  DRAFT      // Being written; not yet submitted to lead
+  SUBMITTED  // Submitted — visible to LEAD / MANAGER
+  REVIEWED   // Lead has acknowledged / commented
+}
+
+/// Master diary record — one per team member per shift-day
+model DailyDiary {
+  id            String       @id @default(cuid())
+  diaryDate     DateTime     @db.Date   // Calendar date of the shift (date only, UTC)
+  shiftPattern  ShiftPattern            // MORNING / AFTERNOON / NIGHT / GENERAL…
+  status        DiaryStatus  @default(DRAFT)
+
+  // ── Section 1: Incidents handled ──
+  incidentCount      Int     @default(0)
+  incidentNotes      String? // Free-text summary; linked items in DiaryIncident
+
+  // ── Section 2: Knowledge Transfer progress ──
+  ktSessionsCount    Int     @default(0)   // Number of KT sessions conducted/attended
+  ktProgressPercent  Int     @default(0)   // Overall KT completion 0–100
+  ktNotes            String?              // Topics covered, documents updated, etc.
+
+  // ── Section 3: KTLO (Keep The Lights On) tasks ──
+  ktloResolvedCount  Int     @default(0)  // KTLO items resolved in this shift
+  ktloNotes          String?             // Details on what was fixed / maintained
+
+  // ── Section 4: New tasks picked up ──
+  newTaskCount       Int     @default(0)
+  newTaskNotes       String?
+
+  // ── Section 5: Blockers for next shift ──
+  hasBlockers        Boolean @default(false)
+  blockerDetails     String?
+
+  // ── Section 6: General end-of-shift notes ──
+  generalNotes       String?
+
+  // ── Lead review ──
+  reviewedAt         DateTime?
+  reviewNotes        String?
+
+  // Timestamps
+  submittedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // FK
+  authorId     String
+  projectId    String
+  shiftId      String?  // Optional — link to the specific Shift record if available
+
+  // Relations
+  author       User            @relation("DiaryAuthor",   fields: [authorId],   references: [id])
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  incidents    DiaryIncident[]
+  ktItems      DiaryKtItem[]
+  ktloItems    DiaryKtloItem[]
+  tasks        DiaryTask[]
+
+  @@unique([authorId, diaryDate, shiftPattern])
+  @@index([projectId, diaryDate])
+  @@index([authorId, diaryDate])
+  @@index([status])
+  @@map("daily_diaries")
+}
+
+/// An individual incident referenced inside a diary entry
+model DiaryIncident {
+  id          String  @id @default(cuid())
+  title       String
+  source      Source
+  severity    Severity
+  externalRef String? // SNOW ticket ID or PD ref
+  wasResolved Boolean @default(false)
+  notes       String?
+
+  diaryId     String
+  diary       DailyDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@index([diaryId])
+  @@map("diary_incidents")
+}
+
+/// A single KT (Knowledge Transfer) session or topic logged in a diary entry
+model DiaryKtItem {
+  id         String  @id @default(cuid())
+  topic      String           // KT topic / module name
+  type       String  @default("SESSION") // SESSION | DOCUMENT | DEMO | REVIEW
+  durationMins Int   @default(0)
+  notes      String?
+
+  diaryId    String
+  diary      DailyDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@index([diaryId])
+  @@map("diary_kt_items")
+}
+
+/// A KTLO (Keep The Lights On) task resolved during the shift
+model DiaryKtloItem {
+  id          String  @id @default(cuid())
+  title       String
+  category    String  @default("MAINTENANCE") // MONITORING | DEPLOYMENT | PATCH | MAINTENANCE | ALERT
+  externalRef String? // Ticket / task reference
+  notes       String?
+
+  diaryId     String
+  diary       DailyDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@index([diaryId])
+  @@map("diary_ktlo_items")
+}
+
+/// A new task picked up or created during the shift
+model DiaryTask {
+  id         String  @id @default(cuid())
+  title      String
+  priority   String  @default("MEDIUM") // LOW | MEDIUM | HIGH
+  dueDate    DateTime?
+  notes      String?
+
+  diaryId    String
+  diary      DailyDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+
+  @@index([diaryId])
+  @@map("diary_tasks")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────
+
+/// Immutable audit trail for every sensitive state change in the system
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String   // User who performed the action
+  action      String   // e.g., "LOG_CREATED", "HANDOVER_SUBMITTED", "SWAP_APPROVED"
+  entityType  String   // e.g., "DailyUpdateLog", "ShiftHandover"
+  entityId    String   // ID of the affected record
+  previousVal Json?    // Snapshot before change
+  nextVal     Json?    // Snapshot after change
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  actor          User            @relation(fields: [actorId], references: [id])
+  dailyUpdateLog DailyUpdateLog? @relation(fields: [entityId], references: [id], map: "audit_log_entity_fk")
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
