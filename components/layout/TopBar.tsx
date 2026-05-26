@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Clock, Globe } from "lucide-react";
 import { cn, ROLE_CONFIG, TIMEZONE_LABELS, formatInTimezone } from "@/lib/utils";
+import { useUserTimezone } from "@/lib/user-timezone";
 
 const PROJECT_SHORT: Record<string, string> = {
   proj_checkout:     "Checkout",
@@ -58,6 +59,9 @@ export function TopBar({ user }: TopBarProps) {
   const pathname = usePathname();
   const breadcrumb = buildBreadcrumb(pathname);
 
+  // Auto-detect browser timezone; respect any saved override from Settings
+  const { timezone: effectiveTz, isManualOverride } = useUserTimezone(user.timezone);
+
   // Live clock — null until mounted to avoid hydration mismatch
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
@@ -66,10 +70,10 @@ export function TopBar({ user }: TopBarProps) {
     return () => clearInterval(id);
   }, []);
 
-  /** Returns which shift is active right now based on IST time */
+  /** Returns which shift is active right now based on the user's effective timezone */
   function getCurrentShift(date: Date): { label: string; num: string; bg: string; text: string } {
     const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Kolkata",
+      timeZone: effectiveTz,
       hour: "numeric",
       minute: "numeric",
       hour12: false,
@@ -84,17 +88,25 @@ export function TopBar({ user }: TopBarProps) {
 
   const currentShift = now ? getCurrentShift(now) : null;
 
-  const tzLabel = TIMEZONE_LABELS[user.timezone] ?? user.timezone;
+  // Short label for the clock pill — prefer known label, else trim IANA to city name
+  const tzLabel =
+    TIMEZONE_LABELS[effectiveTz] ??
+    effectiveTz.split("/").pop()?.replace(/_/g, " ") ??
+    effectiveTz;
+
   const localTime = now
-    ? formatInTimezone(now, user.timezone, {
+    ? formatInTimezone(now, effectiveTz, {
         hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
       })
     : "--:--:-- --";
+
   const pstTime = now
     ? formatInTimezone(now, "America/Los_Angeles", {
         hour: "2-digit", minute: "2-digit", hour12: true,
       })
     : "--:-- --";
+
+  const showPst = effectiveTz !== "America/Los_Angeles";
 
   return (
     <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6">
@@ -123,11 +135,17 @@ export function TopBar({ user }: TopBarProps) {
         {(user.role === "CONTRACTOR" || user.role === "EMPLOYEE") && (
           <ClockButton user={user} />
         )}
-        {/* Live clock — user's timezone */}
+
+        {/* Live clock — auto-detected or saved timezone */}
         <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-xs">
           <Clock className="h-3.5 w-3.5 text-gray-400" />
           <span className="font-mono font-medium text-gray-700">{localTime}</span>
           <span className="text-gray-400">{tzLabel}</span>
+          {isManualOverride && (
+            <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600">
+              custom
+            </span>
+          )}
         </div>
 
         {/* Current shift indicator */}
@@ -139,7 +157,7 @@ export function TopBar({ user }: TopBarProps) {
         )}
 
         {/* PST reference — GAP client timezone anchor */}
-        {user.timezone !== "America/Los_Angeles" && (
+        {showPst && (
           <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs">
             <Globe className="h-3.5 w-3.5 text-indigo-400" />
             <span className="font-mono font-medium text-indigo-700">{pstTime}</span>

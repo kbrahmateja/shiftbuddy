@@ -5,13 +5,7 @@ import { RoleSwitcher } from "@/components/settings/RoleSwitcher";
 import { HolidayCalendarSettings } from "@/components/settings/HolidayCalendarSettings";
 import { HolidayPolicySettings } from "@/components/settings/HolidayPolicySettings";
 import { NotificationChannels } from "@/components/settings/NotificationChannels";
-
-const TIMEZONE_OPTIONS = [
-  { value: "Asia/Kolkata", label: "IST — Asia/Kolkata" },
-  { value: "America/New_York", label: "EST — America/New_York" },
-  { value: "America/Los_Angeles", label: "PST — America/Los_Angeles" },
-  { value: "UTC", label: "UTC" },
-];
+import { TimezoneSettings } from "@/components/settings/TimezoneSettings";
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
@@ -59,16 +53,8 @@ export default async function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Timezone</label>
-            <select
-              defaultValue={user?.timezone}
-              disabled
-              className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 cursor-not-allowed"
-            >
-              {TIMEZONE_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+            {/* Timezone — auto-detected from browser, overridable */}
+            <TimezoneSettings sessionTimezone={user?.timezone ?? "UTC"} />
           </div>
         </div>
       </section>
