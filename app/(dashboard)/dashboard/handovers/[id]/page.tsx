@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MOCK_HANDOVERS, MOCK_USERS, MOCK_LOGS } from "@/lib/mock-data";

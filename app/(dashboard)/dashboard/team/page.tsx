@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_USERS, MOCK_SHIFTS, MOCK_PROJECTS } from "@/lib/mock-data";
 import { TeamAttendanceLive } from "@/components/attendance/TeamAttendanceLive";

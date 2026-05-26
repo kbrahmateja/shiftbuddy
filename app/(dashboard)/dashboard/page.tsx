@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { DashboardWorkspace } from "@/components/dashboard/DashboardWorkspace";
 import { getSessionUser } from "@/lib/auth";
 import {

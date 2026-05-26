@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 // app/(dashboard)/dashboard/shifts/page.tsx
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_SHIFTS } from "@/lib/mock-data";

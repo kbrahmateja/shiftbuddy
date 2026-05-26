@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { CompileHandoverClient } from "@/components/handover/CompileHandoverClient";

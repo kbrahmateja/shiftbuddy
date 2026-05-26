@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getSessionUser } from "@/lib/auth";
 import { SwapsClient } from "@/components/swaps/SwapsClient";
 

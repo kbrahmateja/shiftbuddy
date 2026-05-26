@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_PROJECTS, MOCK_SHIFTS, MOCK_USERS } from "@/lib/mock-data";
 import { CoverageMatrix, type ProjectCoverage, type SpocInfo, type TeamMember } from "@/components/coverage/CoverageMatrix";

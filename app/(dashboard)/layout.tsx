@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 // app/(dashboard)/layout.tsx
 // ─────────────────────────────────────────────────────────────
 // Root layout for all authenticated dashboard routes.

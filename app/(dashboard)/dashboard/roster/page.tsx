@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 // app/(dashboard)/dashboard/roster/page.tsx
 // ─────────────────────────────────────────────────────────────
 // Roster page — three-tab layout:

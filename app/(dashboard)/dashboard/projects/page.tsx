@@ -1,4 +1,6 @@
 "use client";
+
+export const runtime = 'edge';
 // app/(dashboard)/dashboard/projects/page.tsx
 // ─────────────────────────────────────────────────────────────
 // Full projects overview for MANAGER and GAP_STAKEHOLDER.

@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import Link from "next/link";
 import { MOCK_USERS } from "@/lib/mock-data";
 

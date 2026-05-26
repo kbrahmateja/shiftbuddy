@@ -1,5 +1,7 @@
 "use client";
 
+export const runtime = 'edge';
+
 import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle2, ArrowLeftRight, Clock, LogIn, LogOut } from "lucide-react";
 import { getAttendanceNotifications, type AttendanceNotification } from "@/lib/attendance";

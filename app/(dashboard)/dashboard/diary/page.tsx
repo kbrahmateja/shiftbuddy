@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 // app/(dashboard)/dashboard/diary/page.tsx
 // ─────────────────────────────────────────────────────────────
 // Daily Diary page — role-gated:

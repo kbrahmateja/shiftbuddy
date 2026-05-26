@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 // app/(dashboard)/dashboard/diary/report/page.tsx
 // ─────────────────────────────────────────────────────────────
 // Diary Report page — accessible by LEAD, MANAGER, GAP_STAKEHOLDER.

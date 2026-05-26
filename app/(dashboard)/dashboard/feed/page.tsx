@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_LOGS } from "@/lib/mock-data";
 import { DailyLogsFeed } from "@/components/dashboard/DailyLogsFeed";

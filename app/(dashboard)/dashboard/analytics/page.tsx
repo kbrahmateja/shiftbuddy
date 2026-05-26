@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
 
 export default function AnalyticsPage() {

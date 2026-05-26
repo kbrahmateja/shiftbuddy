@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getSessionUser } from "@/lib/auth";
 import { RoleSwitcher } from "@/components/settings/RoleSwitcher";
 
