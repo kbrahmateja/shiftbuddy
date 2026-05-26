@@ -74,7 +74,7 @@ const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   // ── POC STUB: read a "demo_role" cookie to simulate role switching ──
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const demoRole = (cookieStore.get("demo_role")?.value ?? "LEAD") as UserRole;
   return DEMO_PERSONAS[demoRole] ?? DEMO_PERSONAS.LEAD;
 }

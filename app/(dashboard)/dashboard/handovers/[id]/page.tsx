@@ -12,9 +12,10 @@ const STATUS_STYLES: Record<string, string> = {
 export default async function HandoverDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const handover = MOCK_HANDOVERS.find((h) => h.id === params.id);
+  const { id } = await params;
+  const handover = MOCK_HANDOVERS.find((h) => h.id === id);
   if (!handover) notFound();
 
   const outgoing = MOCK_USERS.find((u) => u.id === handover.outgoingLeadId);
