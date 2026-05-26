@@ -2,7 +2,7 @@ export const runtime = 'edge';
 
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_LOGS } from "@/lib/mock-data";
-import { DailyLogsFeed } from "@/components/dashboard/DailyLogsFeed";
+import { FeedTabs } from "@/components/feed/FeedTabs";
 
 export default async function FeedPage() {
   const user = await getSessionUser();
@@ -15,7 +15,7 @@ export default async function FeedPage() {
         </p>
       </div>
       <div className="flex-1 overflow-hidden">
-        <DailyLogsFeed logs={MOCK_LOGS} userRole={user!.role} />
+        <FeedTabs logs={MOCK_LOGS} userRole={user!.role} />
       </div>
     </div>
   );

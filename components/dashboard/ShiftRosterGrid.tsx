@@ -9,6 +9,11 @@ import {
 import { cn, SHIFT_PATTERN_LABELS, formatInTimezone, getInitials, getAvatarColor } from "@/lib/utils";
 import type { Shift, ShiftPattern, ShiftStatus, User as UserType } from "@/types";
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_SHIFTS } from "@/lib/mock-data";
+import {
+  BUILTIN_HOLIDAYS_2026, DEFAULT_TOGGLES,
+  CUSTOM_HOLIDAYS_KEY, CALENDAR_TOGGLES_KEY,
+  type Holiday, type CalendarToggles,
+} from "@/lib/holidays";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,60 +63,65 @@ const PATTERN_HOURS: Record<ShiftPattern, [number, number, number, number]> = {
 const DAY_LABELS   = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─────────────────────────────────────────────
-// HOLIDAYS (2026 — Indian & US)
+// HOLIDAYS — reads from shared lib + localStorage
 // ─────────────────────────────────────────────
 
-interface Holiday { date: string; name: string; type: "IN" | "US" | "BOTH"; }
+function useHolidays() {
+  const [toggles, setToggles]       = useState<CalendarToggles>(DEFAULT_TOGGLES);
+  const [custom, setCustom]         = useState<Holiday[]>([]);
 
-const HOLIDAYS_2026: Holiday[] = [
-  // ── BOTH ──────────────────────────────────
-  { date: "2026-01-01", name: "New Year's Day",       type: "BOTH" },
-  { date: "2026-12-25", name: "Christmas Day",         type: "BOTH" },
+  useEffect(() => {
+    const loadToggles = () => {
+      try {
+        const raw = localStorage.getItem(CALENDAR_TOGGLES_KEY);
+        return raw ? { ...DEFAULT_TOGGLES, ...JSON.parse(raw) } : DEFAULT_TOGGLES;
+      } catch { return DEFAULT_TOGGLES; }
+    };
+    const loadCustom = () => {
+      try {
+        const raw = localStorage.getItem(CUSTOM_HOLIDAYS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    };
+    setToggles(loadToggles());
+    setCustom(loadCustom());
 
-  // ── INDIA ─────────────────────────────────
-  { date: "2026-01-14", name: "Makar Sankranti",       type: "IN" },
-  { date: "2026-01-26", name: "Republic Day",          type: "IN" },
-  { date: "2026-02-26", name: "Maha Shivaratri",       type: "IN" },
-  { date: "2026-03-25", name: "Holi",                  type: "IN" },
-  { date: "2026-04-02", name: "Ram Navami",            type: "IN" },
-  { date: "2026-04-10", name: "Good Friday",           type: "IN" },
-  { date: "2026-04-14", name: "Ambedkar Jayanti",      type: "IN" },
-  { date: "2026-04-14", name: "Baisakhi / Vishu",      type: "IN" },
-  { date: "2026-05-01", name: "Labour Day",            type: "IN" },
-  { date: "2026-06-07", name: "Eid ul-Adha",           type: "IN" },
-  { date: "2026-08-15", name: "Independence Day",      type: "IN" },
-  { date: "2026-08-27", name: "Janmashtami",           type: "IN" },
-  { date: "2026-10-02", name: "Gandhi Jayanti",        type: "IN" },
-  { date: "2026-10-21", name: "Dussehra",              type: "IN" },
-  { date: "2026-11-08", name: "Diwali",                type: "IN" },
-  { date: "2026-11-09", name: "Diwali (holiday)",      type: "IN" },
-  { date: "2026-11-14", name: "Children's Day",        type: "IN" },
-  { date: "2026-11-15", name: "Guru Nanak Jayanti",    type: "IN" },
+    // Re-read when settings page updates localStorage
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CALENDAR_TOGGLES_KEY) setToggles(loadToggles());
+      if (e.key === CUSTOM_HOLIDAYS_KEY)  setCustom(loadCustom());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
-  // ── USA ───────────────────────────────────
-  { date: "2026-01-19", name: "MLK Day",               type: "US" },
-  { date: "2026-02-16", name: "Presidents' Day",       type: "US" },
-  { date: "2026-05-25", name: "Memorial Day",          type: "US" },
-  { date: "2026-06-19", name: "Juneteenth",            type: "US" },
-  { date: "2026-07-03", name: "Independence Day (obs)",type: "US" },
-  { date: "2026-07-04", name: "Independence Day",      type: "US" },
-  { date: "2026-09-07", name: "Labor Day",             type: "US" },
-  { date: "2026-10-12", name: "Columbus Day",          type: "US" },
-  { date: "2026-11-11", name: "Veterans Day",          type: "US" },
-  { date: "2026-11-26", name: "Thanksgiving",          type: "US" },
-];
+  const allHolidays = [
+    ...BUILTIN_HOLIDAYS_2026.filter((h) => {
+      if (h.type === "BOTH") return toggles.IN || toggles.US;
+      if (h.type === "IN")   return toggles.IN;
+      if (h.type === "US")   return toggles.US;
+      return false;
+    }),
+    ...custom,
+  ];
 
-function getHolidaysForDay(day: Date): Holiday[] {
-  const key = day.toISOString().slice(0, 10);
-  return HOLIDAYS_2026.filter((h) => h.date === key);
+  const getForDay = (day: Date): Holiday[] => {
+    const key = day.toISOString().slice(0, 10);
+    return allHolidays.filter((h) => h.date === key);
+  };
+
+  return { getForDay, toggles };
 }
 
 function HolidayPill({ h }: { h: Holiday }) {
   const styles =
-    h.type === "IN"   ? "bg-orange-100 text-orange-700 border-orange-200" :
-    h.type === "US"   ? "bg-blue-100 text-blue-700 border-blue-200" :
-                        "bg-purple-100 text-purple-700 border-purple-200";
-  const flag = h.type === "IN" ? "🇮🇳" : h.type === "US" ? "🇺🇸" : "🌐";
+    h.type === "IN"     ? "bg-orange-100 text-orange-700 border-orange-200" :
+    h.type === "US"     ? "bg-blue-100 text-blue-700 border-blue-200"       :
+    h.type === "CUSTOM" ? "bg-indigo-100 text-indigo-700 border-indigo-200" :
+                          "bg-purple-100 text-purple-700 border-purple-200";
+  const flag =
+    h.type === "IN" ? "🇮🇳" : h.type === "US" ? "🇺🇸" :
+    h.type === "CUSTOM" ? "⭐" : "🌐";
   return (
     <span className={`inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10px] font-medium leading-tight ${styles}`}>
       {flag} {h.name}
@@ -793,6 +803,7 @@ export function ShiftRosterGrid({
   const [viewMode,       setViewMode]       = useState<"week" | "month">("week");
   const [showBulkModal,  setShowBulkModal]  = useState(false);
   const [addDay,         setAddDay]         = useState<Date | null>(null);
+  const { getForDay: getHolidaysForDay, toggles: calToggles } = useHolidays();
 
   useEffect(() => { setCopiedShifts(loadCopiedShifts()); }, []);
 
@@ -1046,8 +1057,8 @@ export function ShiftRosterGrid({
             );
           })}
           <span className="h-4 w-px bg-gray-200 mx-1" />
-          <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-100 px-2.5 py-0.5 text-[11px] font-medium text-orange-700">🇮🇳 India Holiday</span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">🇺🇸 US Holiday</span>
+          {calToggles.IN && <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-100 px-2.5 py-0.5 text-[11px] font-medium text-orange-700">🇮🇳 India Holiday</span>}
+          {calToggles.US && <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">🇺🇸 US Holiday</span>}
         </div>
       )}
 
@@ -1088,14 +1099,21 @@ export function ShiftRosterGrid({
             {/* Header */}
             <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/50">
               {weekDays.map((day, idx) => {
-                const isToday   = isSameDay(day, today);
-                const dayShifts = getShiftsForDay(day);
-                const hasGap    = dayShifts.length === 0;
+                const isToday    = isSameDay(day, today);
+                const dayShifts  = getShiftsForDay(day);
+                const hasGap     = dayShifts.length === 0;
+                const dayHols    = getHolidaysForDay(day);
+                const isHoliday  = dayHols.length > 0;
                 return (
-                  <div key={day.toISOString()} className={cn("border-r border-gray-200 p-2.5 text-center last:border-r-0", isToday && "bg-indigo-50", hasGap && "bg-amber-50/60")}>
-                    <p className={cn("text-xs font-semibold", isToday ? "text-indigo-700" : hasGap ? "text-amber-600" : "text-gray-500")}>{DAY_LABELS[idx]}</p>
-                    <p className={cn("mt-0.5 text-base font-bold", isToday ? "text-indigo-700" : hasGap ? "text-amber-600" : "text-gray-800")}>{day.getDate()}</p>
-                    {dayShifts.length > 0
+                  <div key={day.toISOString()} className={cn(
+                    "border-r border-gray-200 p-2.5 text-center last:border-r-0",
+                    isHoliday ? "bg-orange-50" : isToday ? "bg-indigo-50" : hasGap ? "bg-amber-50/60" : ""
+                  )}>
+                    <p className={cn("text-xs font-semibold", isHoliday ? "text-orange-600" : isToday ? "text-indigo-700" : hasGap ? "text-amber-600" : "text-gray-500")}>{DAY_LABELS[idx]}</p>
+                    <p className={cn("mt-0.5 text-base font-bold", isHoliday ? "text-orange-700" : isToday ? "text-indigo-700" : hasGap ? "text-amber-600" : "text-gray-800")}>{day.getDate()}</p>
+                    {isHoliday
+                      ? <span className="mt-0.5 inline-block rounded-full bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">🏖️ On-Call</span>
+                      : dayShifts.length > 0
                       ? <span className="mt-0.5 inline-block rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">{dayShifts.length}</span>
                       : <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">Gap</span>
                     }
@@ -1109,13 +1127,23 @@ export function ShiftRosterGrid({
                 const dayShifts = getShiftsForDay(day);
                 const isToday   = isSameDay(day, today);
                 const hasGap    = dayShifts.length === 0;
+                const dayHols   = getHolidaysForDay(day);
+                const isHoliday = dayHols.length > 0;
                 return (
-                  <div key={day.toISOString()} className={cn("min-h-[140px] border-r border-gray-200 p-2 last:border-r-0", isToday && "bg-indigo-50/30", hasGap && !isToday && "bg-amber-50/30")}>
+                  <div key={day.toISOString()} className={cn(
+                    "min-h-[140px] border-r border-gray-200 p-2 last:border-r-0",
+                    isHoliday ? "bg-orange-50/40" : isToday ? "bg-indigo-50/30" : hasGap && !isToday ? "bg-amber-50/30" : ""
+                  )}>
                     <div className="space-y-1.5">
-                      {/* Holidays */}
-                      {getHolidaysForDay(day).map((h) => (
+                      {/* Holiday pills + On-Call policy note */}
+                      {dayHols.map((h) => (
                         <HolidayPill key={h.date + h.name} h={h} />
                       ))}
+                      {isHoliday && dayShifts.length > 0 && (
+                        <div className="rounded border border-orange-200 bg-orange-100/60 px-1.5 py-1 text-[10px] text-orange-700 font-medium leading-tight">
+                          🏖️ Holiday On-Call — P1/P2 respond, others ack only
+                        </div>
+                      )}
                       {dayShifts.map((s) => (
                         <ShiftCell key={s.id} shift={s} displayTimezone={displayTz} personalView={personalView} />
                       ))}

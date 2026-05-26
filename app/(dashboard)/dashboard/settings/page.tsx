@@ -2,6 +2,8 @@ export const runtime = 'edge';
 
 import { getSessionUser } from "@/lib/auth";
 import { RoleSwitcher } from "@/components/settings/RoleSwitcher";
+import { HolidayCalendarSettings } from "@/components/settings/HolidayCalendarSettings";
+import { HolidayPolicySettings } from "@/components/settings/HolidayPolicySettings";
 
 const TIMEZONE_OPTIONS = [
   { value: "Asia/Kolkata", label: "IST — Asia/Kolkata" },
@@ -95,43 +97,9 @@ export default async function SettingsPage() {
         ))}
       </section>
 
-      {/* Holiday Calendar */}
-      <section className="rounded-lg border bg-white p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-700">Holiday Calendar</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Holidays shown in the Roster Planner calendar.</p>
-          </div>
-          {(user?.role === "MANAGER") && (
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-              Manager can add custom holidays
-            </span>
-          )}
-        </div>
-        <div className="flex gap-3 flex-wrap">
-          {[
-            { flag: "🇮🇳", label: "Indian Holidays", count: 19, color: "border-orange-200 bg-orange-50 text-orange-700" },
-            { flag: "🇺🇸", label: "US Holidays",     count: 11, color: "border-blue-200 bg-blue-50 text-blue-700" },
-          ].map((cal) => (
-            <div key={cal.label} className={`flex items-center gap-2.5 rounded-lg border px-4 py-2.5 ${cal.color}`}>
-              <span className="text-xl">{cal.flag}</span>
-              <div>
-                <p className="text-xs font-semibold">{cal.label}</p>
-                <p className="text-[11px] opacity-70">{cal.count} holidays for 2026</p>
-              </div>
-              <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-bold">{cal.count}</span>
-            </div>
-          ))}
-        </div>
-        {user?.role === "MANAGER" && (
-          <div className="rounded-md border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">
-              + Add custom holiday{" "}
-              <span className="text-gray-300">— requires database connection</span>
-            </p>
-          </div>
-        )}
-      </section>
+      <HolidayCalendarSettings userRole={user?.role ?? "CONTRACTOR"} />
+
+      <HolidayPolicySettings userRole={user?.role ?? "CONTRACTOR"} />
 
       <RoleSwitcher currentRole={user?.role ?? "LEAD"} />
     </div>
