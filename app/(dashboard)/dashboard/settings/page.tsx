@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { RoleSwitcher } from "@/components/settings/RoleSwitcher";
 import { HolidayCalendarSettings } from "@/components/settings/HolidayCalendarSettings";
 import { HolidayPolicySettings } from "@/components/settings/HolidayPolicySettings";
+import { NotificationChannels } from "@/components/settings/NotificationChannels";
 
 const TIMEZONE_OPTIONS = [
   { value: "Asia/Kolkata", label: "IST — Asia/Kolkata" },
@@ -72,30 +73,7 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* Notification Channels */}
-      <section className="rounded-lg border bg-white p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700">Notification Channels</h2>
-        {[
-          { label: "In-App Notifications", description: "Show badge counts and notification panel.", enabled: true },
-          { label: "Email Notifications", description: "Receive handover SLA alerts via email.", enabled: false },
-          { label: "Slack Notifications", description: "Push updates to your Slack DM.", enabled: false },
-          { label: "MS Teams Notifications", description: "Push updates to your Teams channel.", enabled: false },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center justify-between gap-4 py-2 border-b last:border-b-0">
-            <div>
-              <p className="text-sm font-medium text-gray-800">{item.label}</p>
-              <p className="text-xs text-gray-500">{item.description}</p>
-            </div>
-            <div
-              className={`relative h-5 w-9 rounded-full transition-colors cursor-not-allowed ${item.enabled ? "bg-indigo-500" : "bg-gray-200"}`}
-            >
-              <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${item.enabled ? "translate-x-4" : "translate-x-0.5"}`}
-              />
-            </div>
-          </div>
-        ))}
-      </section>
+      <NotificationChannels />
 
       <HolidayCalendarSettings userRole={user?.role ?? "CONTRACTOR"} />
 

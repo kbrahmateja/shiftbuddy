@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings2, ChevronDown, ChevronUp, Zap, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   loadHolidayPolicy, saveHolidayPolicy, getProjectPolicy,
   ALL_SEVERITIES, SEVERITY_LABELS, DEFAULT_RESPONSE_SEVERITIES,
@@ -104,18 +105,11 @@ function ProjectPolicyRow({ projectId, projectName, policy, isManager, onChange 
                       }
                     </span>
                     {isManager && (
-                      <button
-                        onClick={() => toggleSeverity(sev)}
-                        className={cn(
-                          "relative h-5 w-9 rounded-full transition-colors focus:outline-none",
-                          isResponse ? "bg-red-500" : "bg-gray-200"
-                        )}
-                      >
-                        <span className={cn(
-                          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          isResponse ? "translate-x-4" : "translate-x-0.5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={isResponse}
+                        onCheckedChange={() => toggleSeverity(sev)}
+                        className={isResponse ? "bg-red-500" : undefined}
+                      />
                     )}
                   </div>
                 </div>

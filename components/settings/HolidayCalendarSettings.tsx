@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   BUILTIN_HOLIDAYS_2026,
   CUSTOM_HOLIDAYS_KEY,
@@ -111,13 +112,11 @@ function RegionCard({ flag, label, type, enabled, onToggle, holidays }: RegionCa
             {holidays.length}
           </span>
           {/* Toggle switch */}
-          <button
-            onClick={onToggle}
-            className={`relative h-5 w-9 rounded-full transition-colors focus:outline-none ${enabled ? "bg-indigo-500" : "bg-gray-200"}`}
-            title={enabled ? "Disable calendar" : "Enable calendar"}
-          >
-            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
-          </button>
+          <Switch
+            checked={enabled}
+            onCheckedChange={() => onToggle()}
+            label={enabled ? "Disable calendar" : "Enable calendar"}
+          />
           {/* Expand button */}
           <button
             onClick={() => setExpanded((v) => !v)}
