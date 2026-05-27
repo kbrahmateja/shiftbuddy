@@ -63,7 +63,7 @@ export function CoverageMatrix({
   const [gapStore,  setGapStore]  = useState<GapSmeStore>(GAP_DEFAULTS);
   const [spocStore, setSpocStore] = useState<SpocStore>({});
 
-  // Modal state — one for GAP SME, one for SPOC
+  // Modal state — one for Client SME, one for SPOC
   const [editingGap,  setEditingGap]  = useState<{ projectId: string; shift: ShiftKey } | null>(null);
   const [editingSpoc, setEditingSpoc] = useState<{ projectId: string; shift: ShiftKey } | null>(null);
   const [gapForm,  setGapForm]  = useState<GapSme>({ name: "", email: "", timezone: "" });
@@ -85,7 +85,7 @@ export function CoverageMatrix({
     } catch { /* ignore */ }
   }, []);
 
-  // ── GAP SME helpers ──────────────────────────────────────────────────────
+  // ── Client SME helpers ──────────────────────────────────────────────────────
 
   function openEditGap(projectId: string, shift: ShiftKey) {
     setGapForm(gapStore[projectId]?.[shift] ?? { name: "", email: "", timezone: "" });
@@ -169,7 +169,7 @@ export function CoverageMatrix({
               return (
                 <div key={shiftKey} className={`border-l-4 ${meta.border} grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x`}>
 
-                  {/* ── HCL SPOC ── */}
+                  {/* ── YCI SPOC ── */}
                   <div className="flex items-start gap-3 px-5 py-4">
                     <span className={`mt-1 h-2.5 w-2.5 rounded-full shrink-0 ${meta.dot}`} />
                     <div className="min-w-0 flex-1">
@@ -177,7 +177,7 @@ export function CoverageMatrix({
                         <p className="text-xs font-semibold text-gray-500">
                           {meta.label}
                           <span className="ml-1.5 font-normal text-gray-400">· {meta.time}</span>
-                          <span className="ml-2 font-medium text-[10px] uppercase tracking-wide text-gray-400">HCL SPOC</span>
+                          <span className="ml-2 font-medium text-[10px] uppercase tracking-wide text-gray-400">YCI SPOC</span>
                           {isOverridden && (
                             <span className="ml-1.5 text-[10px] text-indigo-500 font-medium">· updated</span>
                           )}
@@ -224,13 +224,13 @@ export function CoverageMatrix({
                     </div>
                   </div>
 
-                  {/* ── GAP SME ── */}
+                  {/* ── Client SME ── */}
                   <div className="flex items-start gap-3 px-5 py-4">
                     <span className="mt-1 h-2.5 w-2.5 rounded-full shrink-0 bg-emerald-400" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="text-xs font-semibold text-gray-500">
-                          GAP SME
+                          Client SME
                           <span className="ml-1.5 font-normal text-gray-400">· Support Contact</span>
                         </p>
                         {isManager && (
@@ -238,7 +238,7 @@ export function CoverageMatrix({
                             <button
                               onClick={() => openEditGap(proj.projectId, shiftKey)}
                               className="text-gray-400 hover:text-emerald-600 transition-colors"
-                              title="Edit GAP SME"
+                              title="Edit Client SME"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
@@ -271,7 +271,7 @@ export function CoverageMatrix({
                             onClick={() => openEditGap(proj.projectId, shiftKey)}
                             className="text-sm text-emerald-600 hover:underline"
                           >
-                            + Add GAP SME
+                            + Add Client SME
                           </button>
                         ) : (
                           <p className="text-sm text-gray-400 italic">Not assigned</p>
@@ -290,7 +290,7 @@ export function CoverageMatrix({
       {/* ── SPOC edit modal ─────────────────────────────────────────────────── */}
       {editingSpoc && (
         <Modal
-          title="Change HCL SPOC"
+          title="Change YCI SPOC"
           subtitle={`${projects.find((p) => p.projectId === editingSpoc.projectId)?.projectName} · ${SHIFT_META[editingSpoc.shift].label}`}
           onClose={() => setEditingSpoc(null)}
         >
@@ -320,10 +320,10 @@ export function CoverageMatrix({
         </Modal>
       )}
 
-      {/* ── GAP SME edit modal ───────────────────────────────────────────────── */}
+      {/* ── Client SME edit modal ───────────────────────────────────────────────── */}
       {editingGap && (
         <Modal
-          title="GAP SME Details"
+          title="Client SME Details"
           subtitle={`${projects.find((p) => p.projectId === editingGap.projectId)?.projectName} · ${SHIFT_META[editingGap.shift].label}`}
           onClose={() => setEditingGap(null)}
         >

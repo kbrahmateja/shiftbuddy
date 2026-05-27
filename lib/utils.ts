@@ -119,7 +119,7 @@ export const SEVERITY_CONFIG: Record<Severity, SeverityConfig> = {
 export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   CONTRACTOR: {
     label: "Contractor",
-    description: "HCL Vendor Contractor",
+    description: "YCI Vendor Contractor",
     badgeClass: "bg-slate-100 text-slate-700",
     canLogUpdates: true,
     canApproveSwaps: false,
@@ -132,7 +132,7 @@ export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   },
   EMPLOYEE: {
     label: "FTE",
-    description: "HCL Full-Time Employee",
+    description: "YCI Full-Time Employee",
     badgeClass: "bg-blue-100 text-blue-700",
     canLogUpdates: true,
     canApproveSwaps: false,
@@ -145,7 +145,7 @@ export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   },
   LEAD: {
     label: "Shift Lead",
-    description: "HCL Shift / Technical Lead",
+    description: "YCI Shift / Technical Lead",
     badgeClass: "bg-violet-100 text-violet-700",
     canLogUpdates: true,
     canApproveSwaps: true,
@@ -158,7 +158,7 @@ export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   },
   MANAGER: {
     label: "Manager",
-    description: "HCL Delivery / Ops Manager",
+    description: "YCI Delivery / Ops Manager",
     badgeClass: "bg-teal-100 text-teal-700",
     canLogUpdates: true,
     canApproveSwaps: true,

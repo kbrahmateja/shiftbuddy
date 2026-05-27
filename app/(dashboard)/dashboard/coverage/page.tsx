@@ -42,7 +42,7 @@ export default async function CoveragePage() {
     .filter((u) => u.role === "CONTRACTOR" || u.role === "EMPLOYEE" || u.role === "LEAD")
     .map((u) => ({ userId: u.id, name: u.name, email: u.email }));
 
-  const subtitle = `Per-shift HCL SPOC and GAP SME support contacts for each project team.${user?.role === "MANAGER" ? " Click ✏️ to update SPOC or GAP SME." : ""}`;
+  const subtitle = `Per-shift YCI SPOC and Client SME support contacts for each project team.${user?.role === "MANAGER" ? " Click ✏️ to update SPOC or Client SME." : ""}`;
 
   const legendActions = (
     <div className="flex flex-wrap gap-2">

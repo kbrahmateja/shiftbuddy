@@ -702,7 +702,7 @@ function StakeholderView({ logs, projectSummaries, onExport }: StakeholderViewPr
       {/* Read-only all-project feed */}
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle className="text-sm">All Active HCL Vendor Tracks — Live Feed</CardTitle>
+          <CardTitle className="text-sm">All Active YCI Vendor Tracks — Live Feed</CardTitle>
           <CardDescription className="text-xs">Read-only view. Filter by source or severity for targeted visibility.</CardDescription>
         </CardHeader>
         <CardContent className="p-0 pt-3">
