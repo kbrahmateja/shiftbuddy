@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Download, ChevronLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react";
 import {
   ANALYTICS_PERIODS,
   YEARLY_HISTORY,
@@ -12,6 +12,198 @@ import {
   type PeriodKey,
   type AnalyticsPeriodData,
 } from "@/lib/period-data";
+import { cn } from "@/lib/utils";
+
+// ── Label helpers ──────────────────────────────────────────────────────────────
+
+const MONTH_SHORT_A = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/** "Dec 2025" → { year:2025, monthIdx:11 } */
+function parseMonthlyLabel(label: string) {
+  const [mon, yr] = label.split(" ");
+  return { year: parseInt(yr, 10), monthIdx: MONTH_SHORT_A.indexOf(mon) };
+}
+
+/** "Q3 2025" → { year:2025, q:3 }  (1-indexed) */
+function parseQuarterlyLabel(label: string) {
+  const [q, yr] = label.split(" ");
+  return { year: parseInt(yr, 10), q: parseInt(q[1], 10) };
+}
+
+/** "FY 2026" → 2026 */
+function parseYearlyLabel(label: string) {
+  return parseInt(label.split(" ")[1], 10);
+}
+
+function extractYear(label: string, period: PeriodKey): number {
+  if (period === "monthly")   return parseMonthlyLabel(label).year;
+  if (period === "quarterly") return parseQuarterlyLabel(label).year;
+  return parseYearlyLabel(label);
+}
+
+// ── Analytics Calendar Picker ──────────────────────────────────────────────────
+
+function AnalyticsCalendarPicker({
+  period,
+  history,
+  currentIdx,
+  onSelect,
+}: {
+  period: PeriodKey;
+  history: AnalyticsPeriodData[];
+  currentIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const currentEntry = history[currentIdx];
+  const minYear = Math.min(...history.map(e => extractYear(e.label, period)));
+  const maxYear = Math.max(...history.map(e => extractYear(e.label, period)));
+  const [pickerYear, setPickerYear] = useState(() => extractYear(currentEntry.label, period));
+
+  // Sync picker year when selection changes externally
+  useEffect(() => {
+    setPickerYear(extractYear(history[currentIdx].label, period));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIdx]);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  function pickEntry(entry: AnalyticsPeriodData) {
+    const idx = history.indexOf(entry);
+    if (idx !== -1) { onSelect(idx); setOpen(false); }
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all shadow-sm"
+      >
+        <CalendarDays className="h-4 w-4 text-indigo-500" />
+        {currentEntry.label}
+        <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-2 z-30 rounded-2xl border bg-white shadow-xl p-4 w-68 min-w-[260px]">
+
+          {/* Year nav */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setPickerYear(y => Math.max(y - 1, minYear))}
+              disabled={pickerYear <= minYear}
+              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4 text-gray-600" />
+            </button>
+            <span className="text-sm font-bold text-gray-800">
+              {period === "yearly" ? `FY ${pickerYear}` : pickerYear}
+            </span>
+            <button
+              onClick={() => setPickerYear(y => Math.min(y + 1, maxYear))}
+              disabled={pickerYear >= maxYear}
+              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30"
+            >
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Monthly grid */}
+          {period === "monthly" && (
+            <div className="grid grid-cols-3 gap-1.5">
+              {MONTH_SHORT_A.map((mn, i) => {
+                const entry = history.find(e => {
+                  const p = parseMonthlyLabel(e.label);
+                  return p.year === pickerYear && p.monthIdx === i;
+                });
+                const active = entry && history.indexOf(entry) === currentIdx;
+                return (
+                  <button
+                    key={mn}
+                    onClick={() => entry && pickEntry(entry)}
+                    disabled={!entry}
+                    className={cn(
+                      "rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "hover:bg-indigo-50 text-gray-700" : "text-gray-300"
+                    )}
+                  >
+                    {mn}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Quarterly grid */}
+          {period === "quarterly" && (
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Q1", sub: "Jan – Mar", q: 1 },
+                { label: "Q2", sub: "Apr – Jun", q: 2 },
+                { label: "Q3", sub: "Jul – Sep", q: 3 },
+                { label: "Q4", sub: "Oct – Dec", q: 4 },
+              ].map(qd => {
+                const entry = history.find(e => {
+                  const p = parseQuarterlyLabel(e.label);
+                  return p.year === pickerYear && p.q === qd.q;
+                });
+                const active = entry && history.indexOf(entry) === currentIdx;
+                return (
+                  <button
+                    key={qd.label}
+                    onClick={() => entry && pickEntry(entry)}
+                    disabled={!entry}
+                    className={cn(
+                      "rounded-xl py-3 text-center transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "bg-gray-50 hover:bg-indigo-50 text-gray-700" : "bg-gray-50 text-gray-300"
+                    )}
+                  >
+                    <div className="text-sm font-bold">{qd.label}</div>
+                    <div className="text-[10px] opacity-75 mt-0.5">{qd.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Yearly — single button */}
+          {period === "yearly" && (
+            (() => {
+              const entry = history.find(e => parseYearlyLabel(e.label) === pickerYear);
+              const active = entry && history.indexOf(entry) === currentIdx;
+              return (
+                <button
+                  onClick={() => entry && pickEntry(entry)}
+                  disabled={!entry}
+                  className={cn(
+                    "w-full rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                    active ? "bg-indigo-600 text-white" : entry ? "bg-gray-100 text-gray-700 hover:bg-indigo-50" : "bg-gray-100 text-gray-300"
+                  )}
+                >
+                  {entry ? `Select FY ${pickerYear}` : `No data for ${pickerYear}`}
+                </button>
+              );
+            })()
+          )}
+
+          <p className="mt-3 text-center text-[10px] text-gray-400">
+            {period === "monthly" ? "Greyed months have no data" : "Navigate year with arrows"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Period labels ──────────────────────────────────────────────────────────────
 
 const PERIOD_LABELS: Record<PeriodKey, string> = {
   daily:         "Daily",
@@ -105,42 +297,38 @@ export function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Period navigation — shown for monthly / quarterly / yearly */}
+      {/* Period navigation — calendar picker for monthly / quarterly / yearly */}
       {history && (
-        <div className="flex items-center justify-between rounded-lg border bg-white px-4 py-2.5">
-          <button
-            onClick={() => setIdx(getIdx() - 1)}
-            disabled={!canPrev}
-            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            {canPrev ? history[getIdx() - 1].label : "Earlier"}
-          </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <AnalyticsCalendarPicker
+            period={period}
+            history={history}
+            currentIdx={getIdx()}
+            onSelect={setIdx}
+          />
 
-          {/* Period dots */}
-          <div className="flex items-center gap-1.5">
-            {history.map((h, i) => (
-              <button
-                key={h.label}
-                onClick={() => setIdx(i)}
-                title={h.label}
-                className={`h-2 rounded-full transition-all ${
-                  i === getIdx()
-                    ? "w-6 bg-indigo-600"
-                    : "w-2 bg-gray-200 hover:bg-gray-400"
-                }`}
-              />
-            ))}
+          {/* Prev / Next arrows (kept for quick step) */}
+          <div className="flex items-center gap-1 rounded-xl border bg-white px-2 py-1.5 shadow-sm">
+            <button
+              onClick={() => setIdx(getIdx() - 1)}
+              disabled={!canPrev}
+              title={canPrev ? history[getIdx() - 1].label : ""}
+              className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              {canPrev ? history[getIdx() - 1].label : "Earlier"}
+            </button>
+            <span className="text-gray-200">|</span>
+            <button
+              onClick={() => setIdx(getIdx() + 1)}
+              disabled={!canNext}
+              title={canNext ? history[getIdx() + 1].label : ""}
+              className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
+            >
+              {canNext ? history[getIdx() + 1].label : "Latest"}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setIdx(getIdx() + 1)}
-            disabled={!canNext}
-            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            {canNext ? history[getIdx() + 1].label : "Latest"}
-            <ChevronRight className="h-4 w-4" />
-          </button>
         </div>
       )}
 
