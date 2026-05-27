@@ -55,7 +55,7 @@ export function Sidebar({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
+      <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
 
         {/* ── Logo & Brand ── */}
         <div className="flex h-14 items-center gap-3 border-b border-gray-200 px-4">

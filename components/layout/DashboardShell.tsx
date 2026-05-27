@@ -63,7 +63,7 @@ export function DashboardShell({
   }, [sidebarOpen]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
 
       {/* ── Mobile overlay ── */}
       {sidebarOpen && (
@@ -77,10 +77,10 @@ export function DashboardShell({
       {/* ── Sidebar ── */}
       <div
         className={cn(
-          // Mobile: fixed, slides in/out
-          "fixed inset-y-0 left-0 z-30 transition-transform duration-200 ease-in-out",
-          // Desktop: relative, always visible
-          "lg:relative lg:translate-x-0",
+          // Mobile: fixed full-height drawer — use dvh so browser chrome is excluded
+          "fixed left-0 top-0 z-30 h-[100dvh] transition-transform duration-200 ease-in-out",
+          // Desktop: relative, always visible, normal flow
+          "lg:relative lg:h-auto lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
