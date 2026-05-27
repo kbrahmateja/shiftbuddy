@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, ChevronDown, ChevronUp,
   LogIn, LogOut, Clock, Users, AlertTriangle, UserCheck,
 } from "lucide-react";
-import { MOCK_HANDOVERS, MOCK_USERS } from "@/lib/mock-data";
+import { BarChart2 } from "lucide-react";
 import type { SessionUser, MemberSubmission } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -306,7 +306,13 @@ function AttendanceColumn({ data, side }: { data: ShiftAttendance; side: "closin
 
 // ── Manager handover card ─────────────────────────────────────
 
-function ManagerHandoverCard({ lh }: { lh: LeadHandoverRecord }) {
+function ManagerHandoverCard({
+  lh,
+  onAcknowledge,
+}: {
+  lh: LeadHandoverRecord;
+  onAcknowledge: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const closingPresent = lh.closing.attendees.filter(a => a.present).length;
@@ -332,6 +338,19 @@ function ManagerHandoverCard({ lh }: { lh: LeadHandoverRecord }) {
             <span className="text-xs text-gray-400">
               {new Date(lh.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
+            {lh.status === "SUBMITTED" && (
+              <button
+                onClick={() => onAcknowledge(lh.id)}
+                className="rounded-full bg-emerald-600 px-3 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
+              >
+                Acknowledge
+              </button>
+            )}
+            {lh.status === "ACKNOWLEDGED" && (
+              <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" /> Acknowledged
+              </span>
+            )}
           </div>
         </div>
 
@@ -424,6 +443,13 @@ export function HandoversClient({ user }: Props) {
   const [submissions, setSubmissions] = useState<MemberSubmission[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ openItems: "", resolvedItems: "", notes: "" });
+  const [handovers, setHandovers] = useState<LeadHandoverRecord[]>(SEED_LEAD_HANDOVERS);
+
+  function handleAcknowledge(id: string) {
+    setHandovers(prev =>
+      prev.map(h => h.id === id ? { ...h, status: "ACKNOWLEDGED" as const } : h)
+    );
+  }
 
   const isContributor = user.role === "CONTRACTOR" || user.role === "EMPLOYEE";
   const isLeadOrAbove = user.role === "LEAD" || user.role === "MANAGER";
@@ -463,13 +489,20 @@ export function HandoversClient({ user }: Props) {
         </div>
         <div className="flex items-center gap-2">
           {user.role === "MANAGER" && (
-            <Link href="/dashboard/handovers/report"
-              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Download Report
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/handovers/reports"
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <BarChart2 className="h-4 w-4" />
+                Reports
+              </Link>
+              <Link href="/dashboard/handovers/report"
+                className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download
+              </Link>
+            </div>
           )}
           {isContributor && (
             <button onClick={() => setShowModal(true)}
@@ -538,54 +571,23 @@ export function HandoversClient({ user }: Props) {
         </div>
       )}
 
-      {/* Manager: Shift Lead Submissions with attendance */}
+      {/* Manager: Shift Lead Submissions with attendance + acknowledge */}
       {user.role === "MANAGER" && (
         <div className="rounded-lg border bg-white">
           <div className="flex items-center justify-between px-5 py-3.5 border-b">
             <h2 className="text-sm font-semibold text-gray-700">
-              Shift Lead Submissions <span className="ml-1 text-gray-400 font-normal">({SEED_LEAD_HANDOVERS.length})</span>
+              Handover Records{" "}
+              <span className="ml-1 text-gray-400 font-normal">({handovers.length})</span>
             </h2>
-            <span className="text-xs text-gray-400">Current shift cycle</span>
+            <span className="text-xs text-gray-400">Today&apos;s shift cycle</span>
           </div>
           <div>
-            {SEED_LEAD_HANDOVERS.map(lh => <ManagerHandoverCard key={lh.id} lh={lh} />)}
+            {handovers.map(lh => (
+              <ManagerHandoverCard key={lh.id} lh={lh} onAcknowledge={handleAcknowledge} />
+            ))}
           </div>
         </div>
       )}
-
-      {/* Past handover records */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Handover Records</h2>
-        {MOCK_HANDOVERS.length === 0
-          ? <div className="rounded-lg border border-dashed border-gray-200 p-12 text-center"><p className="text-sm text-gray-500">No handover records yet.</p></div>
-          : <div className="space-y-3">
-              {MOCK_HANDOVERS.map(h => {
-                const outgoing = MOCK_USERS.find(u => u.id === h.outgoingLeadId);
-                const incoming = MOCK_USERS.find(u => u.id === h.incomingLeadId);
-                const isOverdue = !h.acknowledgedAt && !!h.dueBy && h.dueBy < new Date();
-                return (
-                  <Link key={h.id} href={`/dashboard/handovers/${h.id}`}
-                    className="block rounded-lg border bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_STYLES[h.status] ?? "bg-gray-100 text-gray-700")}>{h.status}</span>
-                          {isOverdue && <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">OVERDUE</span>}
-                          <span className="text-xs text-gray-400">{outgoing?.name ?? "Unknown"} → {incoming?.name ?? "Unknown"}</span>
-                        </div>
-                        <p className="mt-1.5 text-sm text-gray-700 line-clamp-2">{h.openItemsSummary}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        {h.dueBy && <p className="text-xs text-gray-400">Due {h.dueBy.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
-                        {h.submittedAt && <p className="text-xs text-gray-400">Submitted {h.submittedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-        }
-      </div>
 
       {/* Submit Update Modal */}
       {showModal && (
