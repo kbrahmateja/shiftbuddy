@@ -415,7 +415,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["CONTRACTOR", "EMPLOYEE", "LEAD"],
   },
   {
-    label: "Handovers",
+    label: "Shift Hub",
     href: "/dashboard/handovers",
     iconName: "ArrowLeftRight",
     roles: ["CONTRACTOR", "EMPLOYEE", "LEAD", "MANAGER"],

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   FilePlus, ArrowLeftRight, Users, BarChart3, ShieldCheck,
   CheckCircle2, XCircle, Clock, TrendingUp, AlertOctagon,
   Download, Activity, RefreshCw, CalendarDays, UserCheck,
   Layers, ChevronRight, Bell, Ticket, Hash, Video, MessageCircle,
+  Wifi, BookOpenCheck, Zap, LogIn, LogOut, ClipboardCheck,
+  UserCog, FolderOpen,
 } from "lucide-react";
 import { cn, SOURCE_CONFIG, SEVERITY_CONFIG, ROLE_CONFIG, pluralize } from "@/lib/utils";
 import type {
@@ -109,6 +112,78 @@ function SourceDistributionChart({ logs }: { logs: DailyUpdateLog[] }) {
 }
 
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// QUICK ACTIONS — role-aware shortcut strip
+// ─────────────────────────────────────────────
+
+interface QA { label: string; href: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; badge?: number; }
+
+function QuickActionCard({ qa }: { qa: QA }) {
+  const Icon = qa.icon;
+  return (
+    <Link href={qa.href}
+      className="relative flex flex-col items-center gap-2 rounded-xl border bg-white px-4 py-4 text-center hover:border-indigo-300 hover:shadow-sm transition-all group">
+      <div className={cn("rounded-lg p-2.5 transition-colors group-hover:opacity-90", qa.bg)}>
+        <Icon className={cn("h-5 w-5", qa.color)} />
+      </div>
+      <span className="text-xs font-medium text-gray-700 leading-tight">{qa.label}</span>
+      {qa.badge !== undefined && qa.badge > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          {qa.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function QuickActions({ user, pendingSwaps = 0, pendingHandovers = 0 }: {
+  user: SessionUser; pendingSwaps?: number; pendingHandovers?: number;
+}) {
+  const actionsByRole: Record<string, QA[]> = {
+    CONTRACTOR: [
+      { label: "Submit Shift Update", href: "/dashboard/handovers",  icon: ClipboardCheck, color: "text-indigo-600", bg: "bg-indigo-50" },
+      { label: "Log an Incident",     href: "/dashboard/log-update", icon: FilePlus,        color: "text-rose-600",   bg: "bg-rose-50"   },
+      { label: "My Shifts",           href: "/dashboard/shifts",     icon: CalendarDays,    color: "text-sky-600",    bg: "bg-sky-50"    },
+      { label: "Daily Diary",         href: "/dashboard/diary",      icon: BookOpenCheck,   color: "text-emerald-600",bg: "bg-emerald-50"},
+    ],
+    EMPLOYEE: [
+      { label: "Submit Shift Update", href: "/dashboard/handovers",  icon: ClipboardCheck, color: "text-indigo-600", bg: "bg-indigo-50" },
+      { label: "Log an Incident",     href: "/dashboard/log-update", icon: FilePlus,        color: "text-rose-600",   bg: "bg-rose-50"   },
+      { label: "My Shifts",           href: "/dashboard/shifts",     icon: CalendarDays,    color: "text-sky-600",    bg: "bg-sky-50"    },
+      { label: "Daily Diary",         href: "/dashboard/diary",      icon: BookOpenCheck,   color: "text-emerald-600",bg: "bg-emerald-50"},
+    ],
+    LEAD: [
+      { label: "Compile Handover",  href: "/dashboard/handovers/new",  icon: ArrowLeftRight, color: "text-indigo-600", bg: "bg-indigo-50",  badge: pendingHandovers },
+      { label: "Shift Hub",         href: "/dashboard/handovers",       icon: Wifi,           color: "text-emerald-600",bg: "bg-emerald-50" },
+      { label: "Approve Swaps",     href: "/dashboard/swaps",           icon: RefreshCw,      color: "text-violet-600", bg: "bg-violet-50",  badge: pendingSwaps     },
+      { label: "Daily Diary",       href: "/dashboard/diary",           icon: BookOpenCheck,  color: "text-amber-600",  bg: "bg-amber-50"   },
+    ],
+    MANAGER: [
+      { label: "Live Shifts",        href: "/dashboard/handovers",         icon: Wifi,          color: "text-emerald-600",bg: "bg-emerald-50" },
+      { label: "Handover Reports",   href: "/dashboard/handovers/reports", icon: BarChart3,     color: "text-indigo-600", bg: "bg-indigo-50"  },
+      { label: "Roster Planner",     href: "/dashboard/roster",            icon: Users,         color: "text-blue-600",   bg: "bg-blue-50"    },
+      { label: "SLA Tracker",        href: "/dashboard/sla",               icon: ShieldCheck,   color: "text-rose-600",   bg: "bg-rose-50"    },
+      { label: "Team Management",    href: "/dashboard/team",              icon: UserCog,       color: "text-violet-600", bg: "bg-violet-50"  },
+      { label: "Projects",           href: "/dashboard/projects",          icon: FolderOpen,    color: "text-amber-600",  bg: "bg-amber-50"   },
+    ],
+  };
+
+  const actions = actionsByRole[user.role] ?? [];
+  if (!actions.length) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="h-4 w-4 text-indigo-500" />
+        <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
+      </div>
+      <div className={cn("grid gap-3", actions.length <= 4 ? "grid-cols-4" : "grid-cols-3 sm:grid-cols-6")}>
+        {actions.map(qa => <QuickActionCard key={qa.href} qa={qa} />)}
+      </div>
+    </div>
+  );
+}
+
 // VIEW: CONTRACTOR / EMPLOYEE
 // ─────────────────────────────────────────────
 
@@ -133,6 +208,7 @@ function ContractorView({ user, logs, shifts, onLogUpdate }: ContractorViewProps
 
   return (
     <div className="space-y-6">
+      <QuickActions user={user} />
       {/* Active shift banner */}
       {activeShift && (
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3.5">
@@ -240,6 +316,7 @@ function LeadView({
 
   return (
     <div className="space-y-6">
+      <QuickActions user={user} pendingHandovers={pendingHandovers.length} pendingSwaps={pendingSwaps.length} />
       {/* Metrics */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <MetricCard label="Total Shift Logs" value={logs.length} icon={Activity} colorClass="text-indigo-600" />
@@ -388,6 +465,7 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
 
   return (
     <div className="space-y-6">
+      <QuickActions user={user} />
       {/* High-level ops metrics */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <MetricCard label="Active Contractors" value={metrics.totalContractors} icon={Users} colorClass="text-teal-600" />

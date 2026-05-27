@@ -5,10 +5,11 @@ import Link from "next/link";
 import {
   CheckCircle2, XCircle, ChevronDown, ChevronUp,
   LogIn, LogOut, Clock, Users, AlertTriangle, UserCheck,
+  BarChart2, Wifi, ArrowLeftRight, Timer,
 } from "lucide-react";
-import { BarChart2 } from "lucide-react";
 import type { SessionUser, MemberSubmission } from "@/types";
 import { cn } from "@/lib/utils";
+import { LiveShiftMonitor } from "@/components/roster/LiveShiftMonitor";
 
 const STORAGE_KEY = "sb_member_submissions";
 
@@ -417,6 +418,89 @@ function ManagerHandoverCard({
   );
 }
 
+// ── Shift Cycle Timeline ──────────────────────────────────────
+
+interface SlotStatus { label: string; done: boolean; active: boolean; upcoming: boolean; countdownMs: number; handoverAt: string; }
+
+function getShiftSlots(): SlotStatus[] {
+  const now = new Date();
+  const istStr = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "numeric", hour12: false }).format(now);
+  const [h, m] = istStr.split(":").map(Number);
+  const todayMin = h * 60 + m;
+
+  // Handover times in IST minutes from midnight
+  const slots = [
+    { label: "S3 → S1", handoverAt: "05:30", atMin: 5 * 60 + 30 },
+    { label: "S1 → S2", handoverAt: "13:30", atMin: 13 * 60 + 30 },
+    { label: "S2 → S3", handoverAt: "21:30", atMin: 21 * 60 + 30 },
+  ];
+
+  return slots.map(slot => {
+    const diffMin = slot.atMin - todayMin;
+    const done = diffMin < -30;
+    const active = diffMin >= -30 && diffMin <= 30;
+    const upcoming = diffMin > 30;
+    const countdownMs = diffMin > 0 ? diffMin * 60 * 1000 : 0;
+    return { ...slot, done, active, upcoming, countdownMs };
+  });
+}
+
+function Countdown({ ms }: { ms: number }) {
+  const [remaining, setRemaining] = useState(ms);
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const id = setInterval(() => setRemaining(r => Math.max(0, r - 1000)), 1000);
+    return () => clearInterval(id);
+  }, [remaining]);
+  const h = Math.floor(remaining / 3_600_000);
+  const m = Math.floor((remaining % 3_600_000) / 60_000);
+  const s = Math.floor((remaining % 60_000) / 1000);
+  if (h > 0) return <span>{h}h {m}m</span>;
+  if (m > 0) return <span className={m < 10 ? "text-amber-600 font-bold" : ""}>{m}m {s}s</span>;
+  return <span className="text-red-600 font-bold animate-pulse">{s}s</span>;
+}
+
+function ShiftCycleTimeline() {
+  const [slots, setSlots] = useState<SlotStatus[]>(() => getShiftSlots());
+  useEffect(() => {
+    const id = setInterval(() => setSlots(getShiftSlots()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="rounded-xl border bg-white px-5 py-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Timer className="h-4 w-4 text-indigo-500" />
+        <h2 className="text-sm font-semibold text-gray-700">Today&apos;s Shift Cycle</h2>
+        <span className="text-xs text-gray-400 ml-auto">All times IST</span>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {slots.map(slot => (
+          <div key={slot.label} className={cn(
+            "relative rounded-lg border-2 px-4 py-3 text-center transition-all",
+            slot.done    && "border-gray-100 bg-gray-50 opacity-60",
+            slot.active  && "border-indigo-300 bg-indigo-50 shadow-sm",
+            slot.upcoming && "border-dashed border-gray-200 bg-white",
+          )}>
+            {slot.active && (
+              <span className="absolute -top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-indigo-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> LIVE
+              </span>
+            )}
+            <p className="text-xs font-bold text-gray-700">{slot.label}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">at {slot.handoverAt}</p>
+            <div className="mt-2 text-sm font-semibold">
+              {slot.done && <span className="flex items-center justify-center gap-1 text-emerald-600"><CheckCircle2 className="h-4 w-4" /> Done</span>}
+              {slot.active && <span className="text-indigo-600 flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" /> Now</span>}
+              {slot.upcoming && <span className="text-gray-500 flex items-center justify-center gap-1 text-xs"><Clock className="h-3 w-3" /> in <Countdown ms={slot.countdownMs} /></span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Local storage helpers ─────────────────────────────────────
 
 function getLocalSubmissions(): MemberSubmission[] {
@@ -439,11 +523,17 @@ function saveSubmission(sub: MemberSubmission) {
 
 interface Props { user: SessionUser; }
 
+type HubTab = "overview" | "live";
+
 export function HandoversClient({ user }: Props) {
+  const [tab, setTab] = useState<HubTab>("overview");
   const [submissions, setSubmissions] = useState<MemberSubmission[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ openItems: "", resolvedItems: "", notes: "" });
   const [handovers, setHandovers] = useState<LeadHandoverRecord[]>(SEED_LEAD_HANDOVERS);
+
+  const isLeadOrAbove = user.role === "LEAD" || user.role === "MANAGER";
+  const showLiveTab = isLeadOrAbove;
 
   function handleAcknowledge(id: string) {
     setHandovers(prev =>
@@ -452,7 +542,6 @@ export function HandoversClient({ user }: Props) {
   }
 
   const isContributor = user.role === "CONTRACTOR" || user.role === "EMPLOYEE";
-  const isLeadOrAbove = user.role === "LEAD" || user.role === "MANAGER";
 
   useEffect(() => {
     const subs = getAllSubmissions();
@@ -477,14 +566,14 @@ export function HandoversClient({ user }: Props) {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-6 space-y-5 max-w-5xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Shift Handovers</h1>
+          <h1 className="text-xl font-bold text-gray-900">Shift Hub</h1>
           <p className="mt-0.5 text-sm text-gray-500">
             {isContributor ? "Submit your shift update so your lead can compile the handover."
-              : "Review team submissions and compile the final shift handover."}
+              : "Live shift monitoring, handover records, and team submissions."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -519,6 +608,43 @@ export function HandoversClient({ user }: Props) {
           )}
         </div>
       </div>
+
+      {/* Shift Cycle Timeline — always visible */}
+      <ShiftCycleTimeline />
+
+      {/* Tab bar — LEAD / MANAGER only */}
+      {showLiveTab && (
+        <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+          <button
+            onClick={() => setTab("overview")}
+            className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+              tab === "overview" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" /> Handovers
+          </button>
+          <button
+            onClick={() => setTab("live")}
+            className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+              tab === "live" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <Wifi className="h-3.5 w-3.5" />
+            Live Shifts
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+        </div>
+      )}
+
+      {/* Live Shifts tab */}
+      {tab === "live" && showLiveTab && (
+        <div className="rounded-xl border bg-white overflow-hidden">
+          <LiveShiftMonitor currentUser={user} />
+        </div>
+      )}
+
+      {/* Overview tab content (or default for employee/contractor) */}
+      {(tab === "overview" || !showLiveTab) && <>
 
       {/* My submission banner */}
       {isContributor && mySubmission && (
@@ -588,6 +714,8 @@ export function HandoversClient({ user }: Props) {
           </div>
         </div>
       )}
+
+      </> /* end overview tab */}
 
       {/* Submit Update Modal */}
       {showModal && (

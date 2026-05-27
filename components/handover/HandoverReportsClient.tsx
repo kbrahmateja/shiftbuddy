@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Clock, Users, TrendingUp, AlertTriangle, BarChart2 } from "lucide-react";
+import { CheckCircle2, Clock, Users, TrendingUp, AlertTriangle, BarChart2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -45,57 +45,30 @@ function seededRand(seed: number): number {
   return x - Math.floor(x);
 }
 
-function generateRows(days: number): HandoverRow[] {
+// offsetDays: how many period-units back (0 = current, 1 = last, 2 = two ago…)
+function generateRows(days: number, offsetDays = 0): HandoverRow[] {
   const rows: HandoverRow[] = [];
+  const startDaysAgo = offsetDays * days;
 
-  // Today's 3 handovers — fixed realistic data
-  const todayFixed: HandoverRow[] = [
-    {
-      id: "today_lh_01", date: dateStr(0),
-      shiftFrom: "S1 · Morning", shiftTo: "S2 · Afternoon",
-      leadName: "Ankit Singh", project: "Payment Core",
-      status: "ACKNOWLEDGED", presentCount: 5, totalCount: 6,
-      slaMinutes: 18, openItemsCount: 2, hasActingLead: false,
-    },
-    {
-      id: "today_lh_02", date: dateStr(0),
-      shiftFrom: "S2 · Afternoon", shiftTo: "S3 · Night",
-      leadName: "Prateek Agarwal", project: "Browse + Profile",
-      status: "SUBMITTED", presentCount: 5, totalCount: 6,
-      slaMinutes: null, openItemsCount: 2, hasActingLead: true,
-    },
-    {
-      id: "today_lh_03", date: dateStr(0),
-      shiftFrom: "S3 · Night", shiftTo: "S1 · Morning",
-      leadName: "MadhaviLatha K", project: "Checkout + Bag",
-      status: "SUBMITTED", presentCount: 5, totalCount: 6,
-      slaMinutes: null, openItemsCount: 2, hasActingLead: false,
-    },
-  ];
-
-  if (days <= 1) return todayFixed;
-
-  rows.push(...todayFixed);
-
-  // Generate past days
-  for (let d = 1; d < days; d++) {
-    const ds = dateStr(d);
+  for (let d = 0; d < days; d++) {
+    const totalDaysAgo = startDaysAgo + d;
+    const ds = dateStr(totalDaysAgo);
     TRANSITIONS.forEach((tr, ti) => {
-      const seed = d * 10 + ti;
+      const seed = (totalDaysAgo + 1) * 10 + ti;
       const r = seededRand(seed);
       const leadIdx = Math.floor(seededRand(seed + 1) * LEADS.length);
       const projIdx = Math.floor(seededRand(seed + 2) * PROJECTS.length);
       const total = 5 + Math.floor(seededRand(seed + 3) * 3);
       const present = total - Math.floor(seededRand(seed + 4) * 2);
       const slaOk = r > 0.15;
-      const status: HandoverRow["status"] = d === 0 && ti > 0
+      // Today's last 2 handovers are still SUBMITTED (not yet acknowledged)
+      const isFuture = totalDaysAgo === 0 && ti > 0;
+      const status: HandoverRow["status"] = isFuture
         ? "SUBMITTED"
-        : r > 0.05
-        ? "ACKNOWLEDGED"
-        : "DISPUTED";
+        : r > 0.05 ? "ACKNOWLEDGED" : "DISPUTED";
 
       rows.push({
-        id: `h_${d}_${ti}`,
+        id: `h_${totalDaysAgo}_${ti}`,
         date: ds,
         shiftFrom: tr.from,
         shiftTo: tr.to,
@@ -104,7 +77,9 @@ function generateRows(days: number): HandoverRow[] {
         status,
         presentCount: present,
         totalCount: total,
-        slaMinutes: status === "ACKNOWLEDGED" ? (slaOk ? Math.floor(seededRand(seed + 5) * 25 + 5) : Math.floor(seededRand(seed + 5) * 30 + 31)) : null,
+        slaMinutes: status === "ACKNOWLEDGED"
+          ? (slaOk ? Math.floor(seededRand(seed + 5) * 25 + 5) : Math.floor(seededRand(seed + 5) * 30 + 31))
+          : null,
         openItemsCount: Math.floor(seededRand(seed + 6) * 4),
         hasActingLead: seededRand(seed + 7) > 0.85,
       });
@@ -112,6 +87,39 @@ function generateRows(days: number): HandoverRow[] {
   }
 
   return rows.sort((a, b) => b.date.localeCompare(a.date) || a.shiftFrom.localeCompare(b.shiftFrom));
+}
+
+// ── Navigation label helpers ───────────────────────────────────────────────────
+
+function getPeriodLabel(period: Period, offset: number): string {
+  const now = new Date();
+  if (period === "today") {
+    const d = new Date(now); d.setDate(d.getDate() - offset);
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  if (period === "week") {
+    const start = new Date(now); start.setDate(start.getDate() - offset * 7 - 6);
+    const end   = new Date(now); end.setDate(end.getDate() - offset * 7);
+    return `${start.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} – ${end.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
+  }
+  if (period === "month") {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  }
+  if (period === "quarter") {
+    const qMonth = now.getMonth() - offset * 3;
+    const d = new Date(now.getFullYear(), qMonth, 1);
+    const q = Math.floor(d.getMonth() / 3) + 1;
+    return `Q${q} ${d.getFullYear()}`;
+  }
+  if (period === "halfyear") {
+    const hMonth = now.getMonth() - offset * 6;
+    const d = new Date(now.getFullYear(), hMonth, 1);
+    const h = d.getMonth() < 6 ? "H1" : "H2";
+    return `${h} ${d.getFullYear()}`;
+  }
+  // year
+  return String(now.getFullYear() - offset);
 }
 
 // ── Period config ──────────────────────────────────────────────────────────────
@@ -247,10 +255,13 @@ function ProjectBreakdown({ rows }: { rows: HandoverRow[] }) {
 
 export function HandoverReportsClient() {
   const [period, setPeriod] = useState<Period>("today");
+  const [offset, setOffset] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const config = PERIODS.find(p => p.key === period)!;
-  const allRows = useMemo(() => generateRows(config.days), [config.days]);
+  const allRows = useMemo(() => generateRows(config.days, offset), [config.days, offset]);
+
+  function handlePeriodChange(p: Period) { setPeriod(p); setOffset(0); }
 
   const filteredRows = statusFilter === "ALL"
     ? allRows
@@ -291,22 +302,46 @@ export function HandoverReportsClient() {
         </Link>
       </div>
 
-      {/* Period tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit flex-wrap">
-        {PERIODS.map(p => (
+      {/* Period tabs + date navigation */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-xl bg-gray-100 p-1 flex-wrap">
+          {PERIODS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => handlePeriodChange(p.key)}
+              className={cn(
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+                period === p.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Prev / label / Next */}
+        <div className="flex items-center gap-1 rounded-xl border bg-white px-2 py-1">
           <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
-            className={cn(
-              "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
-              period === p.key
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            )}
+            onClick={() => setOffset(o => o + 1)}
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+            title="Previous period"
           >
-            {p.label}
+            <ChevronLeft className="h-4 w-4" />
           </button>
-        ))}
+          <span className="min-w-[140px] text-center text-sm font-medium text-gray-700">
+            {getPeriodLabel(period, offset)}
+          </span>
+          <button
+            onClick={() => setOffset(o => Math.max(0, o - 1))}
+            disabled={offset === 0}
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Next period"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Stat cards */}
