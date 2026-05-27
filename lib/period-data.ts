@@ -77,13 +77,13 @@ export interface SlaPeriodData {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const PROJECTS: { project: string; code: string }[] = [
-  { project: "Checkout + Bag + Composite",           code: "CHECKOUT" },
-  { project: "OnlinePayment + Core + CustomerProfile", code: "PAYMENT"  },
-  { project: "Browse + Profile",                     code: "BROWSE"   },
-  { project: "Buy UI + Ecom FUI",                    code: "BUYUI"    },
-  { project: "PT-WebApp",                            code: "WEBAPP"   },
+  { project: "Commerce & Cart Suite",           code: "CHECKOUT" },
+  { project: "Payments & Identity + CustomerProfile", code: "PAYMENT"  },
+  { project: "Discovery & Profiles",                     code: "BROWSE"   },
+  { project: "Storefront UI",                    code: "BUYUI"    },
+  { project: "RT-WebApp",                            code: "WEBAPP"   },
   { project: "DAM",                                  code: "DAM"      },
-  { project: "PT-Marketing",                         code: "MKTG"     },
+  { project: "RT-Marketing",                         code: "MKTG"     },
 ];
 
 // Source weights (PagerDuty, ServiceNow, Slack, Teams, Verbal, Other)

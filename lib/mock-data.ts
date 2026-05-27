@@ -5,13 +5,13 @@ import type {
 
 // ─── Projects ─────────────────────────────────────────────
 export const MOCK_PROJECTS = [
-  { id: "proj_checkout",     name: "Checkout + Bag + Composite",          description: "Cart, bag, payment & order fulfilment" },
-  { id: "proj_payment_core", name: "OnlinePayment + Core + CustomerProfile", description: "Payments, platform core & customer identity" },
-  { id: "proj_browse",       name: "Browse + Profile",                    description: "Product discovery, search & customer profile" },
-  { id: "proj_buyui",        name: "Buy UI + Ecom FUI",                   description: "Frontend buy flow & e-commerce UI" },
-  { id: "proj_webapp",       name: "PT-WebApp",                           description: "Web application platform & delivery" },
-  { id: "proj_dam",          name: "DAM",                                 description: "Digital Asset Management" },
-  { id: "proj_marketing",    name: "PT-Marketing",                        description: "Campaign, promotions & email platform" },
+  { id: "proj_checkout",     name: "Commerce & Cart Suite",          description: "Cart, bag, payment & order fulfilment" },
+  { id: "proj_payment_core", name: "Payments & Identity Platform", description: "Payments, platform core & customer identity" },
+  { id: "proj_browse",       name: "Discovery & Profiles",                    description: "Product discovery, search & customer profile" },
+  { id: "proj_buyui",        name: "Storefront UI",                   description: "Frontend buy flow & e-commerce UI" },
+  { id: "proj_webapp",       name: "RT-WebApp",                           description: "Web application platform & delivery" },
+  { id: "proj_dam",          name: "Asset Management",                                 description: "Digital Asset Management" },
+  { id: "proj_marketing",    name: "RT-Marketing",                        description: "Campaign, promotions & email platform" },
 ] as const;
 
 export type ProjectId = typeof MOCK_PROJECTS[number]["id"];
@@ -106,9 +106,9 @@ function generateShifts(
 
 // ─── Core team users (demo accounts) ─────────────────────
 const LEAD_USER: User = {
-  id: "user_lead_001", email: "arjun.sharma@hcl.com", name: "Arjun Sharma",
+  id: "user_lead_001", email: "arjun.sharma@yci.com", name: "Arjun Sharma",
   displayName: "Arjun S.", avatarUrl: null, role: "LEAD", timezone: "Asia/Kolkata",
-  employeeId: "HCL-1001", isActive: true,
+  employeeId: "EMP-1001", isActive: true,
   lastLoginAt: new Date(Date.now() - 30 * 60 * 1000),
   createdAt: new Date("2024-01-10"), updatedAt: new Date(),
 };
@@ -119,73 +119,73 @@ type EmpDef = [string, string, string, string, ShiftCode, WeekOff];
 
 const EMPLOYEE_DEFS: EmpDef[] = [
   // Checkout + Bag + Composite
-  ["u_ck_01", "Sonam Bhardwaj",     "sonam.bhardwaj@hcl.com",     "proj_checkout",     "Shift1",  "Sun-Mon"],
-  ["u_ck_02", "Meenu Singh",        "meenu.singh@hcl.com",        "proj_checkout",     "Shift1",  "Fri-Sat"],
-  ["u_ck_03", "Rajeev Kumar",       "rajeev.kumar@hcl.com",       "proj_checkout",     "Shift2",  "Sun-Mon"],
-  ["u_ck_04", "Abhinandan Patil",   "abhinandan.patil@hcl.com",   "proj_checkout",     "Shift2",  "Fri-Sat"],
-  ["u_ck_05", "MadhaviLatha",       "madhavi.latha@hcl.com",      "proj_checkout",     "Shift3",  "Sun-Mon"],
-  ["u_ck_06", "Shivam Rathor",      "shivam.rathor@hcl.com",      "proj_checkout",     "Shift3",  "Fri-Sat"],
-  ["u_ck_07", "Dundi Kari",         "dundi.kari@hcl.com",         "proj_checkout",     "TBD",     "Sun-Mon"],
+  ["u_ck_01", "Sneha Bhatia",     "sneha.bhatia@yci.com",     "proj_checkout",     "Shift1",  "Sun-Mon"],
+  ["u_ck_02", "Meena Iyer",        "meena.iyer@yci.com",        "proj_checkout",     "Shift1",  "Fri-Sat"],
+  ["u_ck_03", "Rajesh Nair",       "rajesh.nair@yci.com",       "proj_checkout",     "Shift2",  "Sun-Mon"],
+  ["u_ck_04", "Abhishek Pawar",   "abhishek.pawar@yci.com",   "proj_checkout",     "Shift2",  "Fri-Sat"],
+  ["u_ck_05", "Kavitha Reddy",       "kavitha.reddy@yci.com",      "proj_checkout",     "Shift3",  "Sun-Mon"],
+  ["u_ck_06", "Shiv Rathod",      "shiv.rathod@yci.com",      "proj_checkout",     "Shift3",  "Fri-Sat"],
+  ["u_ck_07", "Dinesh Kaur",         "dinesh.kaur@yci.com",         "proj_checkout",     "TBD",     "Sun-Mon"],
 
   // OnlinePayment + Core + CustomerProfile
-  ["u_pc_01", "Ankit Singh",        "ankit.singh@hcl.com",        "proj_payment_core", "Shift1",  "Fri-Sat"],
-  ["u_pc_02", "Rajbir Syal",        "rajbir.syal@hcl.com",        "proj_payment_core", "Shift1",  "Sun-Mon"],
-  ["u_pc_03", "Samadhan Jadhav",    "samadhan.jadhav@hcl.com",    "proj_payment_core", "Shift2",  "Fri-Sat"],
-  ["u_pc_04", "Ankit Bisht",        "ankit.bisht@hcl.com",        "proj_payment_core", "Shift2",  "Sun-Mon"],
-  ["u_pc_05", "Naveen Babu Kodiaganti", "naveen.kodiaganti@hcl.com", "proj_payment_core", "Shift3", "Fri-Sat"],
-  ["u_pc_06", "Karthikay Gupta",    "karthikay.gupta@hcl.com",    "proj_payment_core", "Shift3",  "Sun-Mon"],
+  ["u_pc_01", "Arjun Sharma",        "arjun.sharma@yci.com",        "proj_payment_core", "Shift1",  "Fri-Sat"],
+  ["u_pc_02", "Rahul Syal",        "rahul.syal@yci.com",        "proj_payment_core", "Shift1",  "Sun-Mon"],
+  ["u_pc_03", "Sanjay Jadhav",    "sanjay.jadhav@yci.com",    "proj_payment_core", "Shift2",  "Fri-Sat"],
+  ["u_pc_04", "Amit Tiwari",        "amit.tiwari@yci.com",        "proj_payment_core", "Shift2",  "Sun-Mon"],
+  ["u_pc_05", "Naveen Koduri", "naveen.koduri@yci.com", "proj_payment_core", "Shift3", "Fri-Sat"],
+  ["u_pc_06", "Karthik Gupta",    "karthik.gupta@yci.com",    "proj_payment_core", "Shift3",  "Sun-Mon"],
 
   // Browse + Profile
-  ["u_bp_01", "Rahul Anand",        "rahul.anand@hcl.com",        "proj_browse",       "Shift1",  "Fri-Sat"],
-  ["u_bp_02", "Sandeep Kumar Sharma","sandeep.sharma@hcl.com",     "proj_browse",       "Shift1",  "Sun-Mon"],
-  ["u_bp_03", "Amit Sharma",        "amit.sharma@hcl.com",        "proj_browse",       "Shift2",  "Fri-Sat"],
-  ["u_bp_04", "Debashish Ray",      "debashish.ray@hcl.com",      "proj_browse",       "Shift2",  "Sun-Mon"],
-  ["u_bp_05", "P C Vijay Kiran",    "vijay.kiran@hcl.com",        "proj_browse",       "Shift2",  "Fri-Sat"],
-  ["u_bp_06", "Prateek Agarwal",    "prateek.agarwal@hcl.com",    "proj_browse",       "Shift2",  "Sun-Mon"],
-  ["u_bp_07", "Dipak Rahangadale",  "dipak.rahangadale@hcl.com",  "proj_browse",       "Shift3",  "Fri-Sat"],
-  ["u_bp_08", "Brahmateja Kanchibhotla", "brahmateja.k@hcl.com",  "proj_browse",       "Shift3",  "Sun-Mon"],
-  ["u_bp_09", "Chaitanya Lakshmikumar Addepalli", "chaitanya.addepalli@hcl.com", "proj_browse", "Shift3", "Fri-Sat"],
-  ["u_bp_10", "Karthik Sharma",     "karthik.sharma@hcl.com",     "proj_browse",       "Shift1",  "Sun-Mon"],
+  ["u_bp_01", "Rohit Anand",        "rohit.anand@yci.com",        "proj_browse",       "Shift1",  "Fri-Sat"],
+  ["u_bp_02", "Sandeep Sharma","sandeep.sharma@yci.com",     "proj_browse",       "Shift1",  "Sun-Mon"],
+  ["u_bp_03", "Amit Singh",        "amit.singh@yci.com",        "proj_browse",       "Shift2",  "Fri-Sat"],
+  ["u_bp_04", "Debraj Roy",      "debraj.roy@yci.com",      "proj_browse",       "Shift2",  "Sun-Mon"],
+  ["u_bp_05", "Vijay Kiran",    "vijay.kiran@yci.com",        "proj_browse",       "Shift2",  "Fri-Sat"],
+  ["u_bp_06", "Vikram Nair",    "vikram.nair@yci.com",    "proj_browse",       "Shift2",  "Sun-Mon"],
+  ["u_bp_07", "Ravi Pillai",  "ravi.pillai@yci.com",  "proj_browse",       "Shift3",  "Fri-Sat"],
+  ["u_bp_08", "Rahul Kapoor", "rahul.kapoor@yci.com",  "proj_browse",       "Shift3",  "Sun-Mon"],
+  ["u_bp_09", "Kiran Mehta", "kiran.mehta@yci.com", "proj_browse", "Shift3", "Fri-Sat"],
+  ["u_bp_10", "Kartik Sharma",     "kartik.sharma@yci.com",     "proj_browse",       "Shift1",  "Sun-Mon"],
 
   // Buy UI + Ecom FUI
-  ["u_bu_01", "Aradhana Vishwakarma", "aradhana.vishwakarma@hcl.com", "proj_buyui",    "Shift1",  "Fri-Sat"],
-  ["u_bu_02", "Prathala Tirishmaradha", "prathala.t@hcl.com",       "proj_buyui",     "Shift1",  "Sun-Mon"],
-  ["u_bu_03", "Dinesh Aragonda",    "dinesh.aragonda@hcl.com",    "proj_buyui",        "Shift1",  "Fri-Sat"],
-  ["u_bu_04", "Priyanka P",         "priyanka.p@hcl.com",         "proj_buyui",        "Shift2",  "Sun-Mon"],
-  ["u_bu_05", "Sravani Popuri",     "sravani.popuri@hcl.com",     "proj_buyui",        "Shift2",  "Fri-Sat"],
-  ["u_bu_06", "Inaganti Maruthi",   "inaganti.maruthi@hcl.com",   "proj_buyui",        "Shift2",  "Sun-Mon"],
-  ["u_bu_07", "Vinodh Kumar Darangula", "vinodh.darangula@hcl.com","proj_buyui",       "Shift3",  "Fri-Sat"],
-  ["u_bu_08", "Patan Sabeerkhan",   "patan.sabeerkhan@hcl.com",   "proj_buyui",        "Shift3",  "Sun-Mon"],
-  ["u_bu_09", "Utsav Parashar",     "utsav.parashar@hcl.com",     "proj_buyui",        "Shift3",  "Fri-Sat"],
+  ["u_bu_01", "Aradhana Verma", "aradhana.verma@yci.com", "proj_buyui",    "Shift1",  "Fri-Sat"],
+  ["u_bu_02", "Pratik Tiwari", "pratik.tiwari@yci.com",       "proj_buyui",     "Shift1",  "Sun-Mon"],
+  ["u_bu_03", "Dinesh Arora",    "dinesh.arora@yci.com",    "proj_buyui",        "Shift1",  "Fri-Sat"],
+  ["u_bu_04", "Priyanka Pandey",         "priyanka.pandey@yci.com",         "proj_buyui",        "Shift2",  "Sun-Mon"],
+  ["u_bu_05", "Sravani Puri",     "sravani.puri@yci.com",     "proj_buyui",        "Shift2",  "Fri-Sat"],
+  ["u_bu_06", "Mahesh Naik",   "mahesh.naik@yci.com",   "proj_buyui",        "Shift2",  "Sun-Mon"],
+  ["u_bu_07", "Vinod Kumar", "vinod.kumar@yci.com","proj_buyui",       "Shift3",  "Fri-Sat"],
+  ["u_bu_08", "Pavan Shaikh",   "pavan.shaikh@yci.com",   "proj_buyui",        "Shift3",  "Sun-Mon"],
+  ["u_bu_09", "Uday Prasad",     "uday.prasad@yci.com",     "proj_buyui",        "Shift3",  "Fri-Sat"],
 
   // PT-WebApp
-  ["u_wa_01", "Salipalli Naga Raju","naga.raju@hcl.com",          "proj_webapp",       "Shift1",  "Sun-Mon"],
-  ["u_wa_02", "Bharat Kumar Reddy Daka", "bharat.daka@hcl.com",   "proj_webapp",       "Shift2",  "Fri-Sat"],
-  ["u_wa_03", "Neelkandan",         "neelkandan@hcl.com",         "proj_webapp",       "Shift2",  "Sat-Sun"],
-  ["u_wa_04", "Arafath Ali Shaik",  "arafath.shaik@hcl.com",      "proj_webapp",       "Shift2",  "Sun-Mon"],
-  ["u_wa_05", "Ramamohan Yedluru",  "ramamohan.yedluru@hcl.com",  "proj_webapp",       "Shift3",  "Fri-Sat"],
+  ["u_wa_01", "Sai Narayana","sai.narayana@yci.com",          "proj_webapp",       "Shift1",  "Sun-Mon"],
+  ["u_wa_02", "Bharat Reddy", "bharat.reddy@yci.com",   "proj_webapp",       "Shift2",  "Fri-Sat"],
+  ["u_wa_03", "Neelan Kumar",         "neelan.kumar@yci.com",         "proj_webapp",       "Shift2",  "Sat-Sun"],
+  ["u_wa_04", "Aryan Shaikh",  "aryan.shaikh@yci.com",      "proj_webapp",       "Shift2",  "Sun-Mon"],
+  ["u_wa_05", "Ramesh Yadav",  "ramesh.yadav@yci.com",  "proj_webapp",       "Shift3",  "Fri-Sat"],
 
   // DAM
-  ["u_dm_01", "Puralasetti Vinodvarma","vinodvarma@hcl.com",       "proj_dam",          "Shift3",  "Fri-Sat"],
-  ["u_dm_02", "Habibur Rahaman Kotwal","habibur.kotwal@hcl.com",   "proj_dam",          "General", "Sat-Sun"],
-  ["u_dm_03", "Nirmalkumar Karuppusamy","nirmal.karuppusamy@hcl.com","proj_dam",         "General", "Sat-Sun"],
-  ["u_dm_04", "Ian McNemar",        "ian.mcnemar@hcl.com",        "proj_dam",          "General", "Sat-Sun"],
-  ["u_dm_05", "Manish Kumar",       "manish.kumar@hcl.com",       "proj_dam",          "Shift1",  "Sun-Mon"],
+  ["u_dm_01", "Prasad Varma","prasad.varma@yci.com",       "proj_dam",          "Shift3",  "Fri-Sat"],
+  ["u_dm_02", "Habib Kotwal","habib.kotwal@yci.com",   "proj_dam",          "General", "Sat-Sun"],
+  ["u_dm_03", "Nirmal Kumar","nirmal.kumar@yci.com","proj_dam",         "General", "Sat-Sun"],
+  ["u_dm_04", "Ian Mackay",        "ian.mackay@yci.com",        "proj_dam",          "General", "Sat-Sun"],
+  ["u_dm_05", "Manish Kapoor",       "manish.kapoor@yci.com",       "proj_dam",          "Shift1",  "Sun-Mon"],
 
   // PT-Marketing
-  ["u_mk_01", "Santosh Parida",     "santosh.parida@hcl.com",     "proj_marketing",    "General", "Sat-Sun"],
-  ["u_mk_02", "Vishwesh",           "vishwesh@hcl.com",           "proj_marketing",    "General", "Sat-Sun"],
-  ["u_mk_03", "Rajkumar Samala",    "rajkumar.samala@hcl.com",    "proj_marketing",    "General", "Sat-Sun"],
-  ["u_mk_04", "Rohit Roshan",       "rohit.roshan@hcl.com",       "proj_marketing",    "General", "Sat-Sun"],
-  ["u_mk_05", "Theeda Dhananjay",   "theeda.dhananjay@hcl.com",   "proj_marketing",    "General", "Sat-Sun"],
-  ["u_mk_06", "Uma Ghanta",         "uma.ghanta@hcl.com",         "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_01", "Santosh Patel",     "santosh.patel@yci.com",     "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_02", "Vishnu Rao",           "vishnu.rao@yci.com",           "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_03", "Rajkumar Sinha",    "rajkumar.sinha@yci.com",    "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_04", "Rohit Rajan",       "rohit.rajan@yci.com",       "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_05", "Dhananjai Tiwari",   "dhananjai.tiwari@yci.com",   "proj_marketing",    "General", "Sat-Sun"],
+  ["u_mk_06", "Uma Ghosh",         "uma.ghosh@yci.com",         "proj_marketing",    "General", "Sat-Sun"],
 ];
 
 // Role overrides — default is EMPLOYEE; only exceptions listed here
 const ROLE_OVERRIDES: Partial<Record<string, User["role"]>> = {
-  "u_bp_09": "CONTRACTOR", // Chaitanya Lakshmikumar Addepalli (only contractor)
-  "u_bp_06": "LEAD",       // Prateek Agarwal
-  "u_ck_05": "LEAD",       // MadhaviLatha (handover lead)
+  "u_bp_09": "CONTRACTOR", // Kiran Mehta (only contractor)
+  "u_bp_06": "LEAD",       // Vikram Nair
+  "u_ck_05": "LEAD",       // Kavitha Reddy (handover lead)
 };
 
 // Build user objects
@@ -206,17 +206,17 @@ const BUILT_USERS: User[] = EMPLOYEE_DEFS.map(([id, name, email]) => ({
 
 // Manager and stakeholder demo accounts
 const MANAGER_USER: User = {
-  id: "user_mgr_001", email: "shailesh@hcl.com", name: "Shailesh",
-  displayName: "Shailesh", avatarUrl: null, role: "MANAGER",
-  timezone: "Asia/Kolkata", employeeId: "HCL-0010", isActive: true,
+  id: "user_mgr_001", email: "vikram.singh@yci.com", name: "Vikram Singh",
+  displayName: "Vikram Singh", avatarUrl: null, role: "MANAGER",
+  timezone: "Asia/Kolkata", employeeId: "EMP-0010", isActive: true,
   lastLoginAt: new Date(Date.now() - 15 * 60 * 1000),
   createdAt: new Date("2024-01-05"), updatedAt: new Date(),
 };
 
 const GAP_USER: User = {
-  id: "user_gap_001", email: "archana@gap.com", name: "Archana",
-  displayName: "Archana", avatarUrl: null, role: "GAP_STAKEHOLDER",
-  timezone: "America/Los_Angeles", employeeId: "GAP-501", isActive: true,
+  id: "user_gap_001", email: "sarah.mitchell@corp.com", name: "Sarah Mitchell",
+  displayName: "Sarah Mitchell", avatarUrl: null, role: "GAP_STAKEHOLDER",
+  timezone: "America/Los_Angeles", employeeId: "CLI-501", isActive: true,
   lastLoginAt: new Date(Date.now() - 60 * 60 * 1000),
   createdAt: new Date("2024-02-01"), updatedAt: new Date(),
 };
@@ -239,7 +239,7 @@ EMPLOYEE_DEFS.forEach(([id, , , projectId, shiftCode, weekOff], idx) => {
 //
 //  1. Sonam Bhardwaj (u_ck_01, proj_checkout, Sun-Mon off)  → extra Shift2 on same Mon
 //     → double-shift on same day (should be off too)
-//  2. Ankit Singh (u_pc_01, proj_payment_core, Fri-Sat off)  → extra shift on Fri
+//  2. Arjun Sharma (u_pc_01, proj_payment_core, Fri-Sat off)  → extra shift on Fri
 //     → off-day violation
 //  3. Rahul Anand (u_bp_01, proj_browse, Fri-Sat off)        → 6th shift (extra Thu)
 //     → >5 days in a week
@@ -327,7 +327,7 @@ export const MOCK_LOGS: DailyUpdateLog[] = [
     status: "RESOLVED",
     title: "SSL certificate renewal for Core API staging",
     description:
-      "Renewed SSL cert for api-staging.core.gapinc.com. Cert was expiring in 3 days. Renewed via Let's Encrypt automation.",
+      "Renewed SSL cert for api-staging.core.corp.com. Cert was expiring in 3 days. Renewed via Let's Encrypt automation.",
     snowTicketId: "CHG0012345",
     pagerDutyRef: null,
     slackMessageUrl: null,
@@ -356,7 +356,7 @@ export const MOCK_LOGS: DailyUpdateLog[] = [
       "Nightly vacuum job started 45 min late due to long-running analytics query. No data loss. Job completed successfully.",
     snowTicketId: null,
     pagerDutyRef: null,
-    slackMessageUrl: "https://hcl.slack.com/archives/C01ABC/p123456",
+    slackMessageUrl: "https://yci.slack.com/archives/C01ABC/p123456",
     teamsMessageUrl: null,
     isBlockingDependency: false,
     blockingReason: null,
@@ -379,7 +379,7 @@ export const MOCK_LOGS: DailyUpdateLog[] = [
     status: "ESCALATED",
     title: "Payment service timeout — Stripe webhook failures",
     description:
-      "Payment confirmations not arriving. Stripe webhook retries exhausting. Escalated to vendor and GAPINC Retail Payments team.",
+      "Payment confirmations not arriving. Stripe webhook retries exhausting. Escalated to vendor and Corp Retail Payments team.",
     snowTicketId: "INC0087654",
     pagerDutyRef: "PD-Z9Y8X7",
     slackMessageUrl: null,
@@ -655,7 +655,7 @@ export const MOCK_LOGS: DailyUpdateLog[] = [
       "Reviewed KTLO ticket PWFO-2126 for feature flag cleanup. Change is low-risk, will raise PR in upcoming sprint. No production impact.",
     snowTicketId: null,
     pagerDutyRef: null,
-    slackMessageUrl: "https://hcl.slack.com/archives/C01ABC/p202",
+    slackMessageUrl: "https://yci.slack.com/archives/C01ABC/p202",
     teamsMessageUrl: null,
     isBlockingDependency: false,
     blockingReason: null,
@@ -824,7 +824,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
       { id: "di_2", diaryId: "diary_bp08_today", title: "Browse CDN cache miss rate high (P4)", source: "SLACK", severity: "P4_LOW", externalRef: null, wasResolved: true, notes: "Cache purge triggered; miss rate back to normal within 10 min." },
       { id: "di_3", diaryId: "diary_bp08_today", title: "Profile service slow 200 (P4)", source: "TEAMS", severity: "P4_LOW", externalRef: null, wasResolved: true, notes: "DB query optimization applied; response time normalised." },
     ],
-    ktSessionsCount: 1, ktProgressPercent: 45, ktNotes: "Covered Browse product taxonomy module with Rahul Anand — documented key queries.",
+    ktSessionsCount: 1, ktProgressPercent: 45, ktNotes: "Covered Browse product taxonomy module with Rohit Anand — documented key queries.",
     ktItems: [
       { id: "ki_1", diaryId: "diary_bp08_today", topic: "Browse taxonomy & category API", type: "SESSION", durationMins: 90, notes: "Walkthrough with Rahul, documented in Confluence." },
     ],
@@ -835,7 +835,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
       { id: "kl_3", diaryId: "diary_bp08_today", title: "SSL cert expiry sweep (30-day window)", category: "MONITORING", externalRef: "CHG0099001", notes: "2 certs flagged for renewal next week." },
       { id: "kl_4", diaryId: "diary_bp08_today", title: "Disk usage alert resolved — /var/log cleanup", category: "ALERT", externalRef: null, notes: "Freed 18 GB on prod server." },
     ],
-    newTaskCount: 2, newTaskNotes: "Opened ticket for ES connection pool tuning; flagged for Prateek to review in morning.",
+    newTaskCount: 2, newTaskNotes: "Opened ticket for ES connection pool tuning; flagged for Vikram to review in morning.",
     tasks: [
       { id: "dt_1", diaryId: "diary_bp08_today", title: "Tune Elasticsearch connection pool limits (prod)", priority: "HIGH", dueDate: new Date(Date.now() + 2 * 86400000), notes: "Linked to P2 search latency incident." },
       { id: "dt_2", diaryId: "diary_bp08_today", title: "Update runbook: Browse CDN cache purge procedure", priority: "MEDIUM", dueDate: new Date(Date.now() + 5 * 86400000), notes: "Current runbook is outdated." },
@@ -870,7 +870,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     incidents: [
       { id: "di_7", diaryId: "diary_bp06_today", title: "Customer profile 503 — DB connection leak", source: "SERVICENOW", severity: "P3_MEDIUM", externalRef: "INC0098777", wasResolved: true, notes: "Connection pool exhausted due to long-running query. Query killed, pool recycled." },
     ],
-    ktSessionsCount: 2, ktProgressPercent: 60, ktNotes: "KT sessions with Karthik (new joiner): Browse API routing, profile schema deep-dive.",
+    ktSessionsCount: 2, ktProgressPercent: 60, ktNotes: "KT sessions with Kartik (new joiner): Browse API routing, profile schema deep-dive.",
     ktItems: [
       { id: "ki_2", diaryId: "diary_bp06_today", topic: "Browse API routing & gateway config", type: "SESSION", durationMins: 60, notes: "Karthik onboarding — covered upstream/downstream services." },
       { id: "ki_3", diaryId: "diary_bp06_today", topic: "Customer profile schema & data model", type: "SESSION", durationMins: 45, notes: "Covered Postgres schema for profile data." },
@@ -898,7 +898,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     incidents: [
       { id: "di_8", diaryId: "diary_bp08_y1", title: "ES index rebuild auto-alert (P4)", source: "PAGERDUTY", severity: "P4_LOW", externalRef: "PD-B2C3D4", wasResolved: true, notes: "Expected maintenance window — alert acknowledged and silenced." },
     ],
-    ktSessionsCount: 1, ktProgressPercent: 40, ktNotes: "KT on Elasticsearch index management with Dipak.",
+    ktSessionsCount: 1, ktProgressPercent: 40, ktNotes: "KT on Elasticsearch index management with Ravi.",
     ktItems: [
       { id: "ki_4", diaryId: "diary_bp08_y1", topic: "Elasticsearch index management", type: "SESSION", durationMins: 75, notes: "Covered index lifecycle policies, shard allocation." },
     ],
@@ -917,7 +917,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     ],
     ktSessionsCount: 1, ktProgressPercent: 55, ktNotes: "KT on Stripe webhook handling — internal runbook updated.",
     ktItems: [
-      { id: "ki_5", diaryId: "diary_ck01_y1", topic: "Stripe webhook relay architecture", type: "SESSION", durationMins: 90, notes: "Documented end-to-end webhook flow with Meenu." },
+      { id: "ki_5", diaryId: "diary_ck01_y1", topic: "Stripe webhook relay architecture", type: "SESSION", durationMins: 90, notes: "Documented end-to-end webhook flow with Meena." },
     ],
     ktloResolvedCount: 4, ktloNotes: "Webhook relay redeployed, Redis node restarted, SNOW queue triaged, morning health check.",
     newTaskCount: 2, newTaskNotes: "nginx config review for webhook relay; Redis memory capacity planning.",
@@ -937,8 +937,8 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     ],
     ktSessionsCount: 2, ktProgressPercent: 70, ktNotes: "KT sessions on payment processing flow and HPA configuration.",
     ktItems: [
-      { id: "ki_6", diaryId: "diary_pc01_y1", topic: "Payment Core HPA & scaling configuration", type: "SESSION", durationMins: 60, notes: "Deep-dive with Rajbir on HPA metrics & thresholds." },
-      { id: "ki_7", diaryId: "diary_pc01_y1", topic: "Payment processing flow — end-to-end walkthrough", type: "DEMO", durationMins: 45, notes: "Demo to new joiners Ankit Bisht and Samadhan." },
+      { id: "ki_6", diaryId: "diary_pc01_y1", topic: "Payment Core HPA & scaling configuration", type: "SESSION", durationMins: 60, notes: "Deep-dive with Rahul on HPA metrics & thresholds." },
+      { id: "ki_7", diaryId: "diary_pc01_y1", topic: "Payment processing flow — end-to-end walkthrough", type: "DEMO", durationMins: 45, notes: "Demo to new joiners Amit Tiwari and Sanjay." },
     ],
     ktloResolvedCount: 6, ktloNotes: "HPA config tuning, SNOW queue (6 tickets), cert renewals, backup validation, log shipping check, monitoring dashboard update.",
     newTaskCount: 1, newTaskNotes: "HPA cooldown period needs revisiting — too slow on scale-up.",
@@ -994,7 +994,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     incidents: [
       { id: "di_16", diaryId: "diary_wa02_y2", title: "CI/CD pipeline stage failure — Docker layer cache miss", source: "TEAMS", severity: "P4_LOW", externalRef: null, wasResolved: true, notes: "Cache invalidated after base image update. Forced rebuild fixed it. Updated pipeline config to pin base image." },
     ],
-    ktSessionsCount: 1, ktProgressPercent: 40, ktNotes: "KT on WebApp deployment pipeline with Arafath.",
+    ktSessionsCount: 1, ktProgressPercent: 40, ktNotes: "KT on WebApp deployment pipeline with Aryan.",
     ktItems: [
       { id: "ki_9", diaryId: "diary_wa02_y2", topic: "WebApp CI/CD pipeline — GitHub Actions + ArgoCD", type: "SESSION", durationMins: 80, notes: "Covered full pipeline from PR merge to prod deploy." },
     ],
@@ -1015,7 +1015,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
       { id: "di_17", diaryId: "diary_bu07_y3", title: "Checkout UI broken on Safari 16 (P3)", source: "SERVICENOW", severity: "P3_MEDIUM", externalRef: "INC0096100", wasResolved: true, notes: "CSS grid gap property not supported on Safari 16. Applied vendor prefix. Tested on 5 Safari versions." },
       { id: "di_18", diaryId: "diary_bu07_y3", title: "Buy UI FCP >3s on mobile (P4 perf)", source: "TEAMS", severity: "P4_LOW", externalRef: null, wasResolved: false, notes: "First Contentful Paint degraded. Likely large JS bundle. Opened task." },
     ],
-    ktSessionsCount: 1, ktProgressPercent: 50, ktNotes: "KT on Buy UI frontend architecture with Patan.",
+    ktSessionsCount: 1, ktProgressPercent: 50, ktNotes: "KT on Buy UI frontend architecture with Pavan.",
     ktItems: [
       { id: "ki_10", diaryId: "diary_bu07_y3", topic: "Buy UI React component architecture & state management", type: "SESSION", durationMins: 90, notes: "Covered Redux store, component tree, API integration patterns." },
     ],
@@ -1072,7 +1072,7 @@ export const MOCK_DIARY_ENTRIES: DailyDiary[] = [
     tasks: [
       { id: "dt_14", diaryId: "diary_pc05_y4", title: "P1 Post-mortem: Payment gateway ACL change", priority: "HIGH", dueDate: new Date(Date.now() + 1 * 86400000), notes: "Root cause and prevention plan required." },
       { id: "dt_15", diaryId: "diary_pc05_y4", title: "Implement dual-gateway health monitoring alert", priority: "HIGH", dueDate: new Date(Date.now() + 3 * 86400000), notes: "Current monitoring did not flag the ACL issue fast enough." },
-      { id: "dt_16", diaryId: "diary_pc05_y4", title: "Write P1 incident report for GAPINC", priority: "HIGH", dueDate: new Date(Date.now() + 1 * 86400000), notes: "Required within 24h per SLA policy." },
+      { id: "dt_16", diaryId: "diary_pc05_y4", title: "Write P1 incident report for Corp", priority: "HIGH", dueDate: new Date(Date.now() + 1 * 86400000), notes: "Required within 24h per SLA policy." },
     ],
     hasBlockers: false,
     generalNotes: "Very stressful shift due to P1. Resolved in 18 mins which is within SLA. Root cause was infra team applying wrong ACL rule. 3 post-mortem tasks opened. Will need morning lead to chase infra team on ACL change management process.",

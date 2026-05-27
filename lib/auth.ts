@@ -22,8 +22,8 @@ import type { SessionUser, UserRole } from "@/types";
 const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
   CONTRACTOR: {
     id: "u_bp_09",
-    email: "chaitanya.addepalli@hcl.com",
-    name: "Chaitanya Lakshmikumar Addepalli",
+    email: "kiran.mehta@yci.com",
+    name: "Kiran Mehta",
     role: "CONTRACTOR",
     timezone: "Asia/Kolkata",
     avatarUrl: null,
@@ -32,8 +32,8 @@ const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
   },
   EMPLOYEE: {
     id: "u_bp_08",
-    email: "brahmateja.k@hcl.com",
-    name: "Brahmateja Kanchibhotla",
+    email: "rahul.kapoor@yci.com",
+    name: "Rahul Kapoor",
     role: "EMPLOYEE",
     timezone: "Asia/Kolkata",
     avatarUrl: null,
@@ -42,8 +42,8 @@ const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
   },
   LEAD: {
     id: "u_bp_06",
-    email: "prateek.agarwal@hcl.com",
-    name: "Prateek Agarwal",
+    email: "vikram.nair@yci.com",
+    name: "Vikram Nair",
     role: "LEAD",
     timezone: "Asia/Kolkata",
     avatarUrl: null,
@@ -52,8 +52,8 @@ const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
   },
   MANAGER: {
     id: "user_mgr_001",
-    email: "shailesh@hcl.com",
-    name: "Shailesh",
+    email: "vikram.singh@yci.com",
+    name: "Vikram Singh",
     role: "MANAGER",
     timezone: "Asia/Kolkata",
     avatarUrl: null,
@@ -62,8 +62,8 @@ const DEMO_PERSONAS: Record<UserRole, SessionUser> = {
   },
   GAP_STAKEHOLDER: {
     id: "user_gap_001",
-    email: "archana@gap.com",
-    name: "Archana",
+    email: "sarah.mitchell@corp.com",
+    name: "Sarah Mitchell",
     role: "GAP_STAKEHOLDER",
     timezone: "America/Los_Angeles",
     avatarUrl: null,

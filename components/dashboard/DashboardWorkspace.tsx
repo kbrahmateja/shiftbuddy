@@ -606,7 +606,7 @@ function StakeholderView({ logs, projectSummaries, onExport }: StakeholderViewPr
       <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5">
         <ShieldCheck className="h-4 w-4 flex-shrink-0 text-rose-500" />
         <p className="text-xs text-rose-700">
-          <span className="font-semibold">GAPINC Visibility Tier</span> — read-only access across all HCL vendor tracks.
+          <span className="font-semibold">Corp Visibility Tier</span> — read-only access across all YCI vendor tracks.
           No actions can be performed from this view.
         </p>
         <Button
@@ -626,7 +626,7 @@ function StakeholderView({ logs, projectSummaries, onExport }: StakeholderViewPr
           trend={{ value: 12, direction: "up" }} />
         <MetricCard label="P1 Critical" value={p1Count} icon={AlertOctagon}
           colorClass={p1Count > 0 ? "text-red-600" : "text-emerald-600"} />
-        <MetricCard label="Escalated to GAPINC" value={escalatedCount} icon={TrendingUp}
+        <MetricCard label="Escalated to Corp" value={escalatedCount} icon={TrendingUp}
           colorClass={escalatedCount > 0 ? "text-amber-600" : "text-emerald-600"} />
         <MetricCard label="Resolution Rate" value={`${resolutionRate}%`} icon={CheckCircle2}
           colorClass={resolutionRate >= 80 ? "text-emerald-600" : "text-amber-600"} />
@@ -767,7 +767,7 @@ export function DashboardWorkspace({
     EMPLOYEE: "Cross-functional updates and shift management.",
     LEAD: "Shift oversight — validate logs, approve swaps, execute handovers.",
     MANAGER: "Operational health across all projects and partner teams.",
-    GAP_STAKEHOLDER: "Executive overview — all active HCL vendor tracks.",
+    GAP_STAKEHOLDER: "Executive overview — all active YCI vendor tracks.",
   };
 
   return (

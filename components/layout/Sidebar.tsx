@@ -64,7 +64,7 @@ export function Sidebar({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-gray-900">ShiftBuddy</p>
-            <p className="truncate text-[11px] text-gray-500">GAPINC · HCL Ops</p>
+            <p className="truncate text-[11px] text-gray-500">Corp · YCI Ops</p>
           </div>
           {/* Close button — mobile only */}
           {onClose && (

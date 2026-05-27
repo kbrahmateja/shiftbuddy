@@ -30,8 +30,8 @@ interface HandoverRow {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const LEADS     = ["Ankit Singh", "Prateek Agarwal", "MadhaviLatha K"];
-const PROJECTS  = ["Payment Core", "Browse + Profile", "Checkout + Bag", "Buy UI", "PT-WebApp"];
+const LEADS     = ["Arjun Sharma", "Vikram Nair", "Kavitha Reddy"];
+const PROJECTS  = ["Payment Core", "Discovery & Profiles", "Commerce & Cart", "Storefront UI", "RT-WebApp"];
 const TRANSITIONS = [
   { from: "S1 · Morning",   to: "S2 · Afternoon" },
   { from: "S2 · Afternoon", to: "S3 · Night"     },

@@ -28,7 +28,7 @@ const SPOC_KEY = "sb_spoc_overrides";
 
 const GAP_DEFAULTS: GapSmeStore = {
   proj_browse: {
-    shift2: { name: "Archana", email: "archana@gap.com", timezone: "America/Los_Angeles (PST)" },
+    shift2: { name: "Sarah Mitchell", email: "sarah.mitchell@corp.com", timezone: "America/Los_Angeles (PST)" },
   },
 };
 
@@ -347,7 +347,7 @@ export function CoverageMatrix({
               type="email"
               value={gapForm.email}
               onChange={(e) => setGapForm({ ...gapForm, email: e.target.value })}
-              placeholder="e.g. john.smith@gap.com"
+              placeholder="e.g. john.smith@corp.com"
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>

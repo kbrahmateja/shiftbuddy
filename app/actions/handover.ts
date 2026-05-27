@@ -450,10 +450,10 @@ export async function rejectSwapRequest(
 export async function modifyStakeholderDashboard(): Promise<ActionResult<never>> {
   // No session check needed — this action is unconditionally forbidden.
   // Even a MANAGER cannot modify the stakeholder view layout, as it is
-  // a client-controlled configuration managed by GAPINC IT.
+  // a client-controlled configuration managed by Corp IT.
   return {
     success: false,
     error:
-      "FORBIDDEN: The GAPINC Stakeholder dashboard layout is read-only and cannot be modified through this system. Contact your GAPINC IT administrator to adjust visibility settings.",
+      "FORBIDDEN: The Corp Stakeholder dashboard layout is read-only and cannot be modified through this system. Contact your Corp IT administrator to adjust visibility settings.",
   };
 }

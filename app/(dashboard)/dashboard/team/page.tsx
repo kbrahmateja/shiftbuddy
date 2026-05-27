@@ -9,7 +9,7 @@ const ROLE_LABEL: Record<string, string> = {
   EMPLOYEE:       "Employee",
   LEAD:           "Shift Lead",
   MANAGER:        "Manager",
-  GAP_STAKEHOLDER:"GAPINC Stakeholder",
+  GAP_STAKEHOLDER:"Client Stakeholder",
 };
 
 const ROLE_COLOR: Record<string, string> = {

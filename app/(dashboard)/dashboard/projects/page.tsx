@@ -345,7 +345,7 @@ export default function ProjectsPage() {
             Projects
           </h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            GAPINC programmes and workstreams under HCL management.
+            Corp programmes and workstreams under YCI management.
           </p>
         </div>
 
