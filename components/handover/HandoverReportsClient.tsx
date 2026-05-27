@@ -55,18 +55,21 @@ function daysSinceEpoch(d: Date) {
 
 // ── Date range from period + selection ────────────────────────────────────────
 
-function getDateRange(period: Period, year: number, month: number): { start: Date; end: Date } {
+function getDateRange(period: Period, year: number, month: number, day = 1): { start: Date; end: Date } {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   switch (period) {
     case "today": {
-      const d = new Date(year, month, today.getDate());
-      return { start: d, end: d };
+      const d = new Date(year, month, day); d.setHours(0, 0, 0, 0);
+      const clamped = d > today ? today : d;
+      return { start: clamped, end: clamped };
     }
     case "week": {
-      // First full week of selected month
-      const start = new Date(year, month, 1);
-      const end   = new Date(year, month, 7);
-      return { start, end: end > today ? today : end };
+      const d = new Date(year, month, day); d.setHours(0, 0, 0, 0);
+      const dow = d.getDay();
+      const daysToMon = dow === 0 ? -6 : 1 - dow;
+      const mon = new Date(d); mon.setDate(d.getDate() + daysToMon);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      return { start: mon, end: sun > today ? today : sun };
     }
     case "month":
       return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0) };
@@ -128,10 +131,21 @@ function generateRowsForRange(start: Date, end: Date): HandoverRow[] {
 
 // ── Selection label ────────────────────────────────────────────────────────────
 
-function getSelectionLabel(period: Period, year: number, month: number): string {
+function getSelectionLabel(period: Period, year: number, month: number, day = 1): string {
   switch (period) {
-    case "today":    return `${MONTH_NAMES[month]} ${year}`;
-    case "week":     return `${MONTH_SHORT[month]} ${year} · Week 1`;
+    case "today": {
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    }
+    case "week": {
+      const d = new Date(year, month, day);
+      const dow = d.getDay();
+      const daysToMon = dow === 0 ? -6 : 1 - dow;
+      const mon = new Date(d); mon.setDate(d.getDate() + daysToMon);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      const fmt = (dt: Date) => dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+      return `${fmt(mon)} – ${fmt(sun)}`;
+    }
     case "month":    return `${MONTH_NAMES[month]} ${year}`;
     case "quarter":  return `Q${Math.floor(month / 3) + 1} ${year}`;
     case "halfyear": return `${month < 6 ? "H1" : "H2"} ${year}`;
@@ -152,18 +166,57 @@ const PERIODS: { key: Period; label: string }[] = [
 
 // ── Calendar Picker ────────────────────────────────────────────────────────────
 
+// ── Day-grid helpers ───────────────────────────────────────────────────────────
+
+const WEEKDAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+function buildDayGrid(y: number, m: number): (number | null)[][] {
+  const firstDow  = new Date(y, m, 1).getDay(); // 0 = Sun
+  const daysInMon = new Date(y, m + 1, 0).getDate();
+  const offset    = firstDow === 0 ? 6 : firstDow - 1; // ISO week: Mon = col 0
+  const cells: (number | null)[] = [
+    ...Array(offset).fill(null),
+    ...Array.from({ length: daysInMon }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+/** Monday of the ISO week containing date (y, m, d) */
+function weekMonday(y: number, m: number, d: number): Date {
+  const dt  = new Date(y, m, d);
+  const dow = dt.getDay();
+  const off = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(dt);
+  mon.setDate(dt.getDate() + off);
+  return mon;
+}
+
+// ── Period Picker ──────────────────────────────────────────────────────────────
+
 function PeriodPicker({
-  period, year, month, onSelect,
+  period, year, month, day, onSelect,
 }: {
   period: Period;
   year: number;
   month: number;
-  onSelect: (y: number, m: number) => void;
+  day: number;
+  onSelect: (y: number, m: number, d?: number) => void;
 }) {
-  const [open,       setOpen]       = useState(false);
-  const [pickerYear, setPickerYear] = useState(year);
-  const ref = useRef<HTMLDivElement>(null);
-  const curYear = new Date().getFullYear();
+  const [open,        setOpen]        = useState(false);
+  const [pickerYear,  setPickerYear]  = useState(year);
+  const [pickerMonth, setPickerMonth] = useState(month);
+  const ref      = useRef<HTMLDivElement>(null);
+  const now      = new Date();
+  const curYear  = now.getFullYear();
+  const curMonth = now.getMonth();
+  const curDay   = now.getDate();
+
+  // Sync picker state when selection changes externally (e.g. period reset)
+  useEffect(() => { setPickerYear(year);  }, [year]);
+  useEffect(() => { setPickerMonth(month); }, [month]);
 
   // Close on outside click
   useEffect(() => {
@@ -174,135 +227,259 @@ function PeriodPicker({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  function pick(m: number) { onSelect(pickerYear, m); setOpen(false); }
+  function pickMonth(m: number) { onSelect(pickerYear, m); setOpen(false); }
 
-  // Determine active state for each cell
-  function isActiveMonth(m: number) { return pickerYear === year && m === month; }
-  function isActiveQuarter(q: number) { return pickerYear === year && Math.floor(month / 3) === q; }
-  function isActiveHalf(h: number) { return pickerYear === year && (month < 6 ? 0 : 1) === h; }
+  function pickDay(d: number) { onSelect(pickerYear, pickerMonth, d); setOpen(false); }
+
+  function prevMonth() {
+    if (pickerMonth === 0) { setPickerYear(y => y - 1); setPickerMonth(11); }
+    else setPickerMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (pickerYear > curYear || (pickerYear === curYear && pickerMonth >= curMonth)) return;
+    if (pickerMonth === 11) { setPickerYear(y => y + 1); setPickerMonth(0); }
+    else setPickerMonth(m => m + 1);
+  }
+  const nextMonthDisabled = pickerYear > curYear || (pickerYear === curYear && pickerMonth >= curMonth);
+
+  function isDayFuture(d: number) {
+    if (pickerYear < curYear) return false;
+    if (pickerYear > curYear) return true;
+    if (pickerMonth < curMonth) return false;
+    if (pickerMonth > curMonth) return true;
+    return d > curDay;
+  }
+
+  // Which week row is selected? (for week period)
+  const selMon = weekMonday(year, month, day);
+
+  function isDayInSelectedWeek(d: number | null): boolean {
+    if (d === null) return false;
+    const dt  = new Date(pickerYear, pickerMonth, d);
+    const mon = weekMonday(pickerYear, pickerMonth, d);
+    return mon.getTime() === selMon.getTime();
+  }
+
+  const isShowingDayGrid = period === "today" || period === "week";
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => { setPickerYear(year); setOpen(v => !v); }}
+        onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all shadow-sm"
       >
         <CalendarDays className="h-4 w-4 text-indigo-500" />
-        {getSelectionLabel(period, year, month)}
+        {getSelectionLabel(period, year, month, day)}
         <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
         <div className="absolute top-full left-0 mt-2 z-30 rounded-2xl border bg-white shadow-xl p-4 w-72">
 
-          {/* Year row */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setPickerYear(y => y - 1)}
-              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4 text-gray-600" />
-            </button>
-            <span className="text-sm font-bold text-gray-800">{pickerYear}</span>
-            <button
-              onClick={() => setPickerYear(y => Math.min(y + 1, curYear))}
-              disabled={pickerYear >= curYear}
-              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30"
-            >
-              <ChevronRight className="h-4 w-4 text-gray-600" />
-            </button>
-          </div>
+          {/* ── Day grid (Today / Week) ── */}
+          {isShowingDayGrid && (() => {
+            const weeks = buildDayGrid(pickerYear, pickerMonth);
+            return (
+              <>
+                {/* Month + Year nav */}
+                <div className="flex items-center justify-between mb-3">
+                  <button onClick={prevMonth} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <span className="text-sm font-bold text-gray-800">
+                    {MONTH_NAMES[pickerMonth]} {pickerYear}
+                  </span>
+                  <button onClick={nextMonth} disabled={nextMonthDisabled}
+                    className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                    <ChevronRight className="h-4 w-4 text-gray-600" />
+                  </button>
+                </div>
 
-          {/* Year-only mode */}
-          {period === "year" && (
-            <button
-              onClick={() => { onSelect(pickerYear, 0); setOpen(false); }}
-              className={cn(
-                "w-full rounded-xl py-3 text-sm font-semibold transition-colors",
-                pickerYear === year ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-indigo-50"
-              )}
-            >
-              Select {pickerYear}
-            </button>
-          )}
+                {/* Year quick-nav */}
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <button onClick={() => setPickerYear(y => y - 1)}
+                    className="text-[10px] text-gray-400 hover:text-indigo-500 transition-colors">‹ {pickerYear - 1}</button>
+                  <span className="text-[10px] text-gray-300">|</span>
+                  <button onClick={() => { if (pickerYear < curYear) setPickerYear(y => y + 1); }}
+                    disabled={pickerYear >= curYear}
+                    className="text-[10px] text-gray-400 hover:text-indigo-500 transition-colors disabled:opacity-30">{pickerYear + 1} ›</button>
+                </div>
 
-          {/* Month grid — today / week / month */}
-          {(period === "today" || period === "week" || period === "month") && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {MONTH_SHORT.map((m, i) => (
-                <button
-                  key={m}
-                  onClick={() => pick(i)}
-                  disabled={pickerYear === curYear && i > new Date().getMonth()}
-                  className={cn(
-                    "rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
-                    isActiveMonth(i) ? "bg-indigo-600 text-white shadow-sm" : "hover:bg-indigo-50 text-gray-700"
-                  )}
-                >
-                  {m}
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 mb-1">
+                  {WEEKDAY_LABELS.map(wd => (
+                    <div key={wd} className="text-center text-[10px] font-semibold text-gray-400 py-1">{wd}</div>
+                  ))}
+                </div>
+
+                {/* Day cells */}
+                <div className="space-y-0.5">
+                  {weeks.map((week, wi) => {
+                    const weekSelected = period === "week" && week.some(d => isDayInSelectedWeek(d));
+                    return (
+                      <div key={wi} className={cn(
+                        "grid grid-cols-7 rounded-lg",
+                        period === "week" && weekSelected && "bg-indigo-50"
+                      )}>
+                        {week.map((d, di) => {
+                          if (d === null) return <div key={di} />;
+                          const future  = isDayFuture(d);
+                          const isSel   = period === "today" && pickerYear === year && pickerMonth === month && d === day;
+                          const inWeek  = period === "week" && isDayInSelectedWeek(d);
+                          const isToday = pickerYear === curYear && pickerMonth === curMonth && d === curDay;
+                          return (
+                            <button
+                              key={di}
+                              onClick={() => !future && pickDay(d)}
+                              disabled={future}
+                              className={cn(
+                                "relative flex items-center justify-center h-8 w-full rounded-lg text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+                                isSel   ? "bg-indigo-600 text-white font-bold shadow-sm" :
+                                inWeek  ? "text-indigo-700 font-semibold" :
+                                          "text-gray-700 hover:bg-indigo-50",
+                              )}
+                            >
+                              {d}
+                              {isToday && !isSel && (
+                                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-indigo-400" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-3 text-center text-[10px] text-gray-400">
+                  {period === "today" ? "Tap a day to view that date's handovers"
+                    : "Tap any day to select its full week"}
+                </p>
+              </>
+            );
+          })()}
+
+          {/* ── Month-only periods (Month) ── */}
+          {period === "month" && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setPickerYear(y => y - 1)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-gray-600" />
                 </button>
-              ))}
-            </div>
+                <span className="text-sm font-bold text-gray-800">{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => Math.min(y + 1, curYear))} disabled={pickerYear >= curYear}
+                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {MONTH_SHORT.map((mn, i) => (
+                  <button key={mn} onClick={() => pickMonth(i)}
+                    disabled={pickerYear === curYear && i > curMonth}
+                    className={cn(
+                      "rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+                      pickerYear === year && i === month ? "bg-indigo-600 text-white shadow-sm" : "hover:bg-indigo-50 text-gray-700"
+                    )}>
+                    {mn}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-center text-[10px] text-gray-400">Select year · then pick month</p>
+            </>
           )}
 
-          {/* Quarter grid */}
+          {/* ── Quarter ── */}
           {period === "quarter" && (
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Q1", sub: "Jan – Mar", startMonth: 0  },
-                { label: "Q2", sub: "Apr – Jun", startMonth: 3  },
-                { label: "Q3", sub: "Jul – Sep", startMonth: 6  },
-                { label: "Q4", sub: "Oct – Dec", startMonth: 9  },
-              ].map((q, i) => {
-                const disabled = pickerYear === curYear && q.startMonth > new Date().getMonth();
-                return (
-                  <button
-                    key={q.label}
-                    onClick={() => !disabled && pick(q.startMonth)}
-                    disabled={disabled}
-                    className={cn(
-                      "rounded-xl py-3 text-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
-                      isActiveQuarter(i) ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-50 hover:bg-indigo-50 text-gray-700"
-                    )}
-                  >
-                    <div className="text-sm font-bold">{q.label}</div>
-                    <div className="text-[10px] opacity-75 mt-0.5">{q.sub}</div>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setPickerYear(y => y - 1)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-gray-600" />
+                </button>
+                <span className="text-sm font-bold text-gray-800">{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => Math.min(y + 1, curYear))} disabled={pickerYear >= curYear}
+                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Q1", sub: "Jan – Mar", startMonth: 0 },
+                  { label: "Q2", sub: "Apr – Jun", startMonth: 3 },
+                  { label: "Q3", sub: "Jul – Sep", startMonth: 6 },
+                  { label: "Q4", sub: "Oct – Dec", startMonth: 9 },
+                ].map((q, i) => {
+                  const disabled = pickerYear === curYear && q.startMonth > curMonth;
+                  const active   = pickerYear === year && Math.floor(month / 3) === i;
+                  return (
+                    <button key={q.label} onClick={() => !disabled && pickMonth(q.startMonth)} disabled={disabled}
+                      className={cn("rounded-xl py-3 text-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+                        active ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-50 hover:bg-indigo-50 text-gray-700")}>
+                      <div className="text-sm font-bold">{q.label}</div>
+                      <div className="text-[10px] opacity-75 mt-0.5">{q.sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-center text-[10px] text-gray-400">Select year · then pick quarter</p>
+            </>
           )}
 
-          {/* Half-year grid */}
+          {/* ── Half-year ── */}
           {period === "halfyear" && (
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "H1", sub: "Jan – Jun", startMonth: 0 },
-                { label: "H2", sub: "Jul – Dec", startMonth: 6 },
-              ].map((h, i) => {
-                const disabled = pickerYear === curYear && h.startMonth > new Date().getMonth();
-                return (
-                  <button
-                    key={h.label}
-                    onClick={() => !disabled && pick(h.startMonth)}
-                    disabled={disabled}
-                    className={cn(
-                      "rounded-xl py-4 text-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
-                      isActiveHalf(i) ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-50 hover:bg-indigo-50 text-gray-700"
-                    )}
-                  >
-                    <div className="text-sm font-bold">{h.label}</div>
-                    <div className="text-[10px] opacity-75 mt-0.5">{h.sub}</div>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setPickerYear(y => y - 1)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-gray-600" />
+                </button>
+                <span className="text-sm font-bold text-gray-800">{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => Math.min(y + 1, curYear))} disabled={pickerYear >= curYear}
+                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "H1", sub: "Jan – Jun", startMonth: 0 },
+                  { label: "H2", sub: "Jul – Dec", startMonth: 6 },
+                ].map((h, i) => {
+                  const disabled = pickerYear === curYear && h.startMonth > curMonth;
+                  const active   = pickerYear === year && (month < 6 ? 0 : 1) === i;
+                  return (
+                    <button key={h.label} onClick={() => !disabled && pickMonth(h.startMonth)} disabled={disabled}
+                      className={cn("rounded-xl py-4 text-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+                        active ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-50 hover:bg-indigo-50 text-gray-700")}>
+                      <div className="text-sm font-bold">{h.label}</div>
+                      <div className="text-[10px] opacity-75 mt-0.5">{h.sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-center text-[10px] text-gray-400">Select year · then pick half</p>
+            </>
           )}
 
-          {/* Footer hint */}
-          <p className="mt-3 text-center text-[10px] text-gray-400">
-            {period === "year" ? "Select year above" : "Select year · then pick period"}
-          </p>
+          {/* ── Year ── */}
+          {period === "year" && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setPickerYear(y => y - 1)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-gray-600" />
+                </button>
+                <span className="text-sm font-bold text-gray-800">{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => Math.min(y + 1, curYear))} disabled={pickerYear >= curYear}
+                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                </button>
+              </div>
+              <button onClick={() => { onSelect(pickerYear, 0); setOpen(false); }}
+                className={cn("w-full rounded-xl py-3 text-sm font-semibold transition-colors",
+                  pickerYear === year ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-indigo-50")}>
+                Select {pickerYear}
+              </button>
+              <p className="mt-3 text-center text-[10px] text-gray-400">Select year above</p>
+            </>
+          )}
+
         </div>
       )}
     </div>
@@ -425,18 +602,27 @@ export function HandoverReportsClient() {
   const [period,       setPeriod]       = useState<Period>("month");
   const [selYear,      setSelYear]      = useState(now.getFullYear());
   const [selMonth,     setSelMonth]     = useState(now.getMonth());
+  const [selDay,       setSelDay]       = useState(now.getDate());
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const { start, end } = useMemo(() => getDateRange(period, selYear, selMonth), [period, selYear, selMonth]);
+  const { start, end } = useMemo(
+    () => getDateRange(period, selYear, selMonth, selDay),
+    [period, selYear, selMonth, selDay]
+  );
   const allRows = useMemo(() => generateRowsForRange(start, end), [start, end]);
 
   function handlePeriodChange(p: Period) {
     setPeriod(p);
     setSelYear(now.getFullYear());
     setSelMonth(now.getMonth());
+    setSelDay(now.getDate());
   }
 
-  function handleSelect(y: number, m: number) { setSelYear(y); setSelMonth(m); }
+  function handleSelect(y: number, m: number, d?: number) {
+    setSelYear(y);
+    setSelMonth(m);
+    if (d !== undefined) setSelDay(d);
+  }
 
   const filteredRows = statusFilter === "ALL" ? allRows : allRows.filter(r => r.status === statusFilter);
 
@@ -491,6 +677,7 @@ export function HandoverReportsClient() {
           period={period}
           year={selYear}
           month={selMonth}
+          day={selDay}
           onSelect={handleSelect}
         />
       </div>
