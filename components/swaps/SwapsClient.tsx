@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, X, ArrowLeftRight } from "lucide-react";
 import { MOCK_USERS, MOCK_SHIFTS, MOCK_SWAPS } from "@/lib/mock-data";
 import type { SessionUser } from "@/types";
+import { PageShell } from "@/components/layout/PageShell";
 
 const SWAPS_KEY = "sb_swaps";
 
@@ -99,26 +100,22 @@ export function SwapsClient({ user }: { user: SessionUser }) {
     ...MOCK_SWAPS.map((s) => ({ ...s, decidedAt: s.decidedAt ?? null })),
   ];
 
+  const requestSwapButton = isContractor ? (
+    <button
+      onClick={() => setShowModal(true)}
+      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0"
+    >
+      <Plus className="h-4 w-4" />
+      Request Swap
+    </button>
+  ) : undefined;
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Shift Swap Requests</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            Peer-to-peer shift swap requests pending lead approval.
-          </p>
-        </div>
-        {isContractor && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            Request Swap
-          </button>
-        )}
-      </div>
+    <PageShell
+      title="Shift Swaps"
+      subtitle="Peer-to-peer shift swap requests pending lead approval."
+      actions={requestSwapButton}
+    >
 
       {/* Swap list */}
       {allSwaps.length === 0 ? (
@@ -196,7 +193,7 @@ export function SwapsClient({ user }: { user: SessionUser }) {
           onClose={() => setShowModal(false)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 

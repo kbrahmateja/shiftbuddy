@@ -10,6 +10,7 @@ import {
 import type { SessionUser, MemberSubmission } from "@/types";
 import { cn } from "@/lib/utils";
 import { LiveShiftMonitor } from "@/components/roster/LiveShiftMonitor";
+import { PageShell } from "@/components/layout/PageShell";
 
 const STORAGE_KEY = "sb_member_submissions";
 
@@ -474,7 +475,7 @@ function ShiftCycleTimeline() {
         <h2 className="text-sm font-semibold text-gray-700">Today&apos;s Shift Cycle</h2>
         <span className="text-xs text-gray-400 ml-auto">All times IST</span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {slots.map(slot => (
           <div key={slot.label} className={cn(
             "relative rounded-lg border-2 px-4 py-3 text-center transition-all",
@@ -565,76 +566,77 @@ export function HandoversClient({ user }: Props) {
     setShowModal(false);
   }
 
+  const headerActions = (
+    <>
+      {user.role === "MANAGER" && (
+        <>
+          <Link href="/dashboard/handovers/reports"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <BarChart2 className="h-4 w-4" />
+            Reports
+          </Link>
+          <Link href="/dashboard/handovers/report"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Download
+          </Link>
+        </>
+      )}
+      {isContributor && (
+        <button onClick={() => setShowModal(true)}
+          className={cn("inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors",
+            mySubmission ? "bg-emerald-600 hover:bg-emerald-700" : "bg-indigo-600 hover:bg-indigo-700")}>
+          {mySubmission ? "✓ Edit My Update" : "+ Submit My Update"}
+        </button>
+      )}
+      {user.role === "LEAD" && (
+        <Link href="/dashboard/handovers/new"
+          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+          Compile Handover
+        </Link>
+      )}
+    </>
+  );
+
+  const tabBar = showLiveTab ? (
+    <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <button
+        onClick={() => setTab("overview")}
+        className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+          tab === "overview" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+        )}
+      >
+        <ArrowLeftRight className="h-3.5 w-3.5" /> Handovers
+      </button>
+      <button
+        onClick={() => setTab("live")}
+        className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+          tab === "live" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+        )}
+      >
+        <Wifi className="h-3.5 w-3.5" />
+        Live Shifts
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      </button>
+    </div>
+  ) : undefined;
+
   return (
-    <div className="p-6 space-y-5 max-w-5xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Shift Hub</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {isContributor ? "Submit your shift update so your lead can compile the handover."
-              : "Live shift monitoring, handover records, and team submissions."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {user.role === "MANAGER" && (
-            <div className="flex items-center gap-2">
-              <Link href="/dashboard/handovers/reports"
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <BarChart2 className="h-4 w-4" />
-                Reports
-              </Link>
-              <Link href="/dashboard/handovers/report"
-                className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                Download
-              </Link>
-            </div>
-          )}
-          {isContributor && (
-            <button onClick={() => setShowModal(true)}
-              className={cn("inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors",
-                mySubmission ? "bg-emerald-600 hover:bg-emerald-700" : "bg-indigo-600 hover:bg-indigo-700")}>
-              {mySubmission ? "✓ Edit My Update" : "+ Submit My Update"}
-            </button>
-          )}
-          {user.role === "LEAD" && (
-            <Link href="/dashboard/handovers/new"
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-              Compile Handover
-            </Link>
-          )}
-        </div>
-      </div>
+    <PageShell
+      title="Shift Hub"
+      subtitle={isContributor
+        ? "Submit your shift update so your lead can compile the handover."
+        : "Live shift monitoring, handover records, and team submissions."}
+      actions={headerActions}
+      headerExtra={tabBar}
+      maxWidth="max-w-5xl"
+    >
+      <div className="space-y-5">
 
       {/* Shift Cycle Timeline — always visible */}
       <ShiftCycleTimeline />
-
-      {/* Tab bar — LEAD / MANAGER only */}
-      {showLiveTab && (
-        <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
-          <button
-            onClick={() => setTab("overview")}
-            className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
-              tab === "overview" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5" /> Handovers
-          </button>
-          <button
-            onClick={() => setTab("live")}
-            className={cn("flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
-              tab === "live" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            <Wifi className="h-3.5 w-3.5" />
-            Live Shifts
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
-        </div>
-      )}
 
       {/* Live Shifts tab */}
       {tab === "live" && showLiveTab && (
@@ -717,6 +719,8 @@ export function HandoversClient({ user }: Props) {
 
       </> /* end overview tab */}
 
+      </div>
+
       {/* Submit Update Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -757,6 +761,6 @@ export function HandoversClient({ user }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

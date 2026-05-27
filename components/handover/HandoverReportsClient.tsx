@@ -7,6 +7,7 @@ import {
   BarChart2, ChevronLeft, ChevronRight, CalendarDays, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -637,50 +638,51 @@ export function HandoverReportsClient() {
   const avgAtt      = total ? Math.round(allRows.reduce((s, r) => s + (r.presentCount / r.totalCount) * 100, 0) / total) : 0;
   const openCarry   = allRows.reduce((s, r) => s + r.openItemsCount, 0);
 
+  const printReportLink = (
+    <Link href="/dashboard/handovers/report"
+      className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      </svg>
+      Print Report
+    </Link>
+  );
+
+  const periodRow = (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 flex-wrap">
+        {PERIODS.map(p => (
+          <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+            className={cn(
+              "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
+              period === p.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <PeriodPicker
+        period={period}
+        year={selYear}
+        month={selMonth}
+        day={selDay}
+        onSelect={handleSelect}
+      />
+    </div>
+  );
+
   return (
-    <div className="p-6 max-w-6xl space-y-6">
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <Link href="/dashboard/handovers" className="text-sm text-indigo-600 hover:underline">
-            ← Shift Hub
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 mt-1">Handover Reports</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Shift handover analytics — select any period or date.</p>
-        </div>
-        <Link href="/dashboard/handovers/report"
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Print Report
-        </Link>
-      </div>
-
-      {/* Period tabs + Calendar picker */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-xl bg-gray-100 p-1 flex-wrap">
-          {PERIODS.map(p => (
-            <button key={p.key} onClick={() => handlePeriodChange(p.key)}
-              className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
-                period === p.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <PeriodPicker
-          period={period}
-          year={selYear}
-          month={selMonth}
-          day={selDay}
-          onSelect={handleSelect}
-        />
-      </div>
+    <PageShell
+      title="Handover Reports"
+      subtitle="Shift handover analytics — select any period or date."
+      back={{ href: "/dashboard/handovers", label: "Shift Hub" }}
+      actions={printReportLink}
+      headerExtra={periodRow}
+      maxWidth="max-w-6xl"
+    >
+      <div className="space-y-6">
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -794,6 +796,7 @@ export function HandoverReportsClient() {
             </div>
         }
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

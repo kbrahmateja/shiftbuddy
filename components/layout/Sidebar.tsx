@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FilePlus, Activity, Calendar, ArrowLeftRight,
   RefreshCw, Users, BarChart3, ShieldCheck, FolderOpen, UserCog,
-  Bell, LogOut, ChevronRight, Settings, ContactRound,
+  Bell, LogOut, ChevronRight, Settings, ContactRound, X,
 } from "lucide-react";
 import { cn, getNavItemsForRole, getInitials, getAvatarColor, ROLE_CONFIG } from "@/lib/utils";
 import { MOCK_PROJECTS } from "@/lib/mock-data";
@@ -20,58 +20,62 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// ─────────────────────────────────────────────
-// Icon map (avoids dynamic import overhead)
-// ─────────────────────────────────────────────
-
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, FilePlus, Activity, Calendar, ArrowLeftRight,
   RefreshCw, Users, BarChart3, ShieldCheck, FolderOpen, UserCog, ContactRound,
 };
-
-// ─────────────────────────────────────────────
-// PROPS
-// ─────────────────────────────────────────────
 
 interface SidebarProps {
   user: SessionUser;
   notificationCount?: number;
   pendingHandovers?: number;
   pendingSwaps?: number;
+  onClose?: () => void;
 }
-
-// ─────────────────────────────────────────────
-// SIDEBAR COMPONENT
-// ─────────────────────────────────────────────
 
 export function Sidebar({
   user,
   notificationCount = 0,
   pendingHandovers = 0,
   pendingSwaps = 0,
+  onClose,
 }: SidebarProps) {
   const pathname = usePathname();
   const navItems = getNavItemsForRole(user.role);
   const roleConfig = ROLE_CONFIG[user.role];
 
-  // Attach live badge counts to specific nav items
   const badgeCounts: Record<string, number> = {
     "/dashboard/handovers": pendingHandovers,
     "/dashboard/swaps": pendingSwaps,
   };
 
+  function handleNavClick() {
+    onClose?.();
+  }
+
   return (
     <TooltipProvider delayDuration={300}>
       <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
+
         {/* ── Logo & Brand ── */}
-        <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+        <div className="flex h-14 items-center gap-3 border-b border-gray-200 px-4">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
             <span className="text-xs font-bold text-white">SB</span>
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-gray-900">ShiftBuddy</p>
             <p className="truncate text-[11px] text-gray-500">GAPINC · HCL Ops</p>
           </div>
+          {/* Close button — mobile only */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="lg:hidden flex-shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* ── Active Project Context ── */}
@@ -79,8 +83,8 @@ export function Sidebar({
           const proj = MOCK_PROJECTS.find((p) => p.id === user.activeProjectId);
           return (
             <div className="px-3 pt-3">
-              <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2.5">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">
+              <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-indigo-400 mb-0.5">
                   Active Project
                 </p>
                 <p className="truncate text-xs font-bold text-indigo-800 leading-snug">
@@ -112,6 +116,7 @@ export function Sidebar({
                     <TooltipTrigger asChild>
                       <Link
                         href={item.href}
+                        onClick={handleNavClick}
                         className={cn(
                           "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           isActive
@@ -155,6 +160,7 @@ export function Sidebar({
               {user.role === "LEAD" && (
                 <Link
                   href="/dashboard/handovers/new"
+                  onClick={handleNavClick}
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-emerald-700 transition-all hover:bg-emerald-50"
                 >
                   <ArrowLeftRight className="h-4 w-4 text-emerald-500" />
@@ -164,6 +170,7 @@ export function Sidebar({
               {user.role === "MANAGER" && (
                 <Link
                   href="/dashboard/roster"
+                  onClick={handleNavClick}
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-teal-700 transition-all hover:bg-teal-50"
                 >
                   <Users className="h-4 w-4 text-teal-500" />
@@ -177,7 +184,6 @@ export function Sidebar({
         {/* ── Bottom: User Profile ── */}
         <div className="border-t border-gray-200 p-3">
           <div className="mb-2 flex items-center gap-3 rounded-lg px-2 py-2">
-            {/* Avatar */}
             <div
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
               style={{ backgroundColor: getAvatarColor(user.id) }}
@@ -196,10 +202,9 @@ export function Sidebar({
                 <span className="text-[10px] text-gray-400">{user.timezone}</span>
               </div>
             </div>
-            {/* Notification bell */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href="/dashboard/notifications" className="relative">
+                <Link href="/dashboard/notifications" onClick={handleNavClick} className="relative">
                   <Bell className="h-4 w-4 text-gray-400 transition-colors hover:text-gray-700" />
                   {notificationCount > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
@@ -214,7 +219,6 @@ export function Sidebar({
             </Tooltip>
           </div>
 
-          {/* Settings & Sign Out */}
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -222,7 +226,7 @@ export function Sidebar({
               className="flex-1 justify-start gap-2 text-xs text-gray-500 hover:text-gray-900"
               asChild
             >
-              <Link href="/dashboard/settings">
+              <Link href="/dashboard/settings" onClick={handleNavClick}>
                 <Settings className="h-3.5 w-3.5" />
                 Settings
               </Link>

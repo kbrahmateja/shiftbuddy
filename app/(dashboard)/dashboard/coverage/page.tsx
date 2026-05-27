@@ -3,6 +3,7 @@ export const runtime = 'edge';
 import { getSessionUser } from "@/lib/auth";
 import { MOCK_PROJECTS, MOCK_SHIFTS, MOCK_USERS } from "@/lib/mock-data";
 import { CoverageMatrix, type ProjectCoverage, type SpocInfo, type TeamMember } from "@/components/coverage/CoverageMatrix";
+import { PageShell } from "@/components/layout/PageShell";
 
 /** Pick best SPOC for a project+pattern combo: prefer LEAD, then first EMPLOYEE, then first */
 function pickSpoc(projectId: string, pattern: string): SpocInfo | null {
@@ -41,33 +42,30 @@ export default async function CoveragePage() {
     .filter((u) => u.role === "CONTRACTOR" || u.role === "EMPLOYEE" || u.role === "LEAD")
     .map((u) => ({ userId: u.id, name: u.name, email: u.email }));
 
-  return (
-    <div className="p-6 space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">PT Coverage Directory</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            Per-shift HCL SPOC and GAP SME support contacts for each project team.
-            {user?.role === "MANAGER" && (
-              <span className="ml-1 text-indigo-600 font-medium">Click ✏️ to update SPOC or GAP SME.</span>
-            )}
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-            <span className="h-2 w-2 rounded-full bg-amber-400" /> Shift 1 · Morning
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-            <span className="h-2 w-2 rounded-full bg-sky-400" /> Shift 2 · Afternoon
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-            <span className="h-2 w-2 rounded-full bg-indigo-400" /> Shift 3 · Night
-          </span>
-        </div>
-      </div>
+  const subtitle = `Per-shift HCL SPOC and GAP SME support contacts for each project team.${user?.role === "MANAGER" ? " Click ✏️ to update SPOC or GAP SME." : ""}`;
 
-      <CoverageMatrix projects={projects} viewerRole={user!.role} teamMembers={teamMembers} />
+  const legendActions = (
+    <div className="flex flex-wrap gap-2">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+        <span className="h-2 w-2 rounded-full bg-amber-400" /> Shift 1 · Morning
+      </span>
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+        <span className="h-2 w-2 rounded-full bg-sky-400" /> Shift 2 · Afternoon
+      </span>
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+        <span className="h-2 w-2 rounded-full bg-indigo-400" /> Shift 3 · Night
+      </span>
     </div>
+  );
+
+  return (
+    <PageShell
+      title="PT Coverage"
+      subtitle={subtitle}
+      actions={legendActions}
+      maxWidth="max-w-6xl"
+    >
+      <CoverageMatrix projects={projects} viewerRole={user!.role} teamMembers={teamMembers} />
+    </PageShell>
   );
 }

@@ -18,6 +18,7 @@ import { MOCK_SHIFTS } from "@/lib/mock-data";
 import { ProjectRosterTabs }   from "@/components/roster/ProjectRosterTabs";
 import { ShiftCalendarManager } from "@/components/roster/ShiftCalendarManager";
 import { LiveShiftMonitor }    from "@/components/roster/LiveShiftMonitor";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -75,64 +76,59 @@ export function RosterPageClient({ shifts, currentUser, canEdit }: RosterPageCli
   // Count active shifts for live tab badge
   const activeShiftCount = MOCK_SHIFTS.filter((s) => s.status === "ACTIVE").length;
 
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Page header ── */}
-      <div className="shrink-0 border-b bg-white px-6 pt-5 pb-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Shift Roster</h1>
-            <p className="mt-0.5 text-sm text-gray-500">
-              {activeTabMeta.description}
-            </p>
-          </div>
-          {/* Active now indicator */}
-          {activeShiftCount > 0 && (
-            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+  const liveIndicator = activeShiftCount > 0 ? (
+    <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      {activeShiftCount} shift{activeShiftCount !== 1 ? "s" : ""} active now
+    </div>
+  ) : undefined;
+
+  const tabBar = (
+    <div className="flex gap-0 border-b border-gray-200 -mb-4">
+      {visibleTabs.map((tab) => {
+        const Icon    = tab.Icon;
+        const isLive  = tab.id === "live";
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              isActive
+                ? "border-indigo-600 text-indigo-700"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            )}
+          >
+            <Icon className={cn("h-4 w-4", isActive ? "text-indigo-600" : "text-gray-400")} />
+            {tab.label}
+            {isLive && activeShiftCount > 0 && (
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                isActive
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "bg-emerald-100 text-emerald-700"
+              )}>
+                {activeShiftCount}
               </span>
-              {activeShiftCount} shift{activeShiftCount !== 1 ? "s" : ""} active now
-            </div>
-          )}
-        </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 
-        {/* Tab bar */}
-        <div className="flex gap-0">
-          {visibleTabs.map((tab) => {
-            const Icon    = tab.Icon;
-            const isLive  = tab.id === "live";
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-                  isActive
-                    ? "border-indigo-600 text-indigo-700"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                <Icon className={cn("h-4 w-4", isActive ? "text-indigo-600" : "text-gray-400")} />
-                {tab.label}
-                {isLive && activeShiftCount > 0 && (
-                  <span className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                    isActive
-                      ? "bg-indigo-100 text-indigo-700"
-                      : "bg-emerald-100 text-emerald-700"
-                  )}>
-                    {activeShiftCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
+  return (
+    <PageShell
+      title="Roster Planner"
+      subtitle={activeTabMeta.description}
+      actions={liveIndicator}
+      headerExtra={tabBar}
+      maxWidth="max-w-full"
+    >
       {/* ── Tab content ── */}
       <div className={cn(
         "flex-1 overflow-auto",
@@ -141,21 +137,23 @@ export function RosterPageClient({ shifts, currentUser, canEdit }: RosterPageCli
 
         {/* Calendar tab */}
         {activeTab === "calendar" && (
-          <div className="p-6">
+          <div className="pt-4">
             <ProjectRosterTabs shifts={shifts} canEdit={false} />
           </div>
         )}
 
         {/* Manage tab — full-height calendar manager */}
         {activeTab === "manage" && canEdit && (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-hidden flex flex-col pt-4">
             <ShiftCalendarManager shifts={shifts} currentUser={currentUser} />
           </div>
         )}
 
         {/* Live tab */}
         {activeTab === "live" && canEdit && (
-          <LiveShiftMonitor currentUser={currentUser} />
+          <div className="pt-4">
+            <LiveShiftMonitor currentUser={currentUser} />
+          </div>
         )}
 
         {/* Fallback: non-managers who somehow land on manage/live */}
@@ -167,6 +165,6 @@ export function RosterPageClient({ shifts, currentUser, canEdit }: RosterPageCli
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

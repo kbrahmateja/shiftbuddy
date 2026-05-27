@@ -15,6 +15,7 @@ import {
   type AnalyticsPeriodData,
 } from "@/lib/period-data";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ── Calendar helpers ──────────────────────────────────────────────────────────
 
@@ -471,86 +472,84 @@ export function AnalyticsDashboard() {
   const sourceMax = Math.max(...data.bySource.map((s) => s.count), 1);
   const sevMax    = Math.max(...data.bySeverity.map((s) => s.count), 1);
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {data.label} · {data.dateRange}
-          </p>
-        </div>
+  const exportButton = (
+    <button
+      onClick={() => exportAnalyticsCSV(data)}
+      className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+    >
+      <Download className="h-3.5 w-3.5" />
+      Export CSV
+    </button>
+  );
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Period selector */}
-          <div className="flex rounded-lg border bg-white overflow-hidden text-xs font-medium">
-            {PERIOD_ORDER.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 transition-colors border-r last:border-r-0 ${
-                  period === p ? "bg-indigo-600 text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
-
-          {/* Export */}
+  const periodSelectorRow = (
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Period tabs */}
+      <div className="flex rounded-lg border bg-white overflow-hidden text-xs font-medium">
+        {PERIOD_ORDER.map((p) => (
           <button
-            onClick={() => exportAnalyticsCSV(data)}
-            className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-3 py-1.5 transition-colors border-r last:border-r-0 ${
+              period === p ? "bg-indigo-600 text-white" : "text-gray-500 hover:bg-gray-50"
+            }`}
           >
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
+            {PERIOD_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      {/* Calendar picker */}
+      {history ? (
+        <AnalyticsCalendarPicker
+          period={period}
+          history={history}
+          currentIdx={getIdx()}
+          onSelect={setIdx}
+        />
+      ) : (
+        <div className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-500 shadow-sm">
+          <CalendarDays className="h-4 w-4 text-indigo-400" />
+          {data.label}
+        </div>
+      )}
+
+      {/* Prev / Next arrows */}
+      {history && (
+        <div className="flex items-center gap-1 rounded-xl border bg-white px-2 py-1.5 shadow-sm">
+          <button
+            onClick={() => setIdx(getIdx() - 1)}
+            disabled={!canPrev}
+            title={canPrev ? history[getIdx() - 1].label : ""}
+            className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            {canPrev ? history[getIdx() - 1].label : "Earlier"}
+          </button>
+          <span className="text-gray-200">|</span>
+          <button
+            onClick={() => setIdx(getIdx() + 1)}
+            disabled={!canNext}
+            title={canNext ? history[getIdx() + 1].label : ""}
+            className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
+          >
+            {canNext ? history[getIdx() + 1].label : "Latest"}
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
-      </div>
+      )}
+    </div>
+  );
 
-      {/* Period navigation — calendar picker for all periods */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {history ? (
-          <AnalyticsCalendarPicker
-            period={period}
-            history={history}
-            currentIdx={getIdx()}
-            onSelect={setIdx}
-          />
-        ) : (
-          /* half-yearly: show a static label button (no history to navigate) */
-          <div className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-500 shadow-sm">
-            <CalendarDays className="h-4 w-4 text-indigo-400" />
-            {data.label}
-          </div>
-        )}
-
-        {/* Prev / Next arrows (shown only when there is history) */}
-        {history && (
-          <div className="flex items-center gap-1 rounded-xl border bg-white px-2 py-1.5 shadow-sm">
-            <button
-              onClick={() => setIdx(getIdx() - 1)}
-              disabled={!canPrev}
-              title={canPrev ? history[getIdx() - 1].label : ""}
-              className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              {canPrev ? history[getIdx() - 1].label : "Earlier"}
-            </button>
-            <span className="text-gray-200">|</span>
-            <button
-              onClick={() => setIdx(getIdx() + 1)}
-              disabled={!canNext}
-              title={canNext ? history[getIdx() + 1].label : ""}
-              className="flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-50"
-            >
-              {canNext ? history[getIdx() + 1].label : "Latest"}
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
+  return (
+    <PageShell
+      title="Analytics"
+      subtitle={`${data.label} · ${data.dateRange}`}
+      actions={exportButton}
+      headerExtra={periodSelectorRow}
+      maxWidth="max-w-6xl"
+    >
+      <div className="space-y-6">
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -672,5 +671,6 @@ export function AnalyticsDashboard() {
         {data.dateRange} · SLA target 90% · Connect PostgreSQL for live data
       </p>
     </div>
+    </PageShell>
   );
 }

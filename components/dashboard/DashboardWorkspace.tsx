@@ -177,7 +177,7 @@ function QuickActions({ user, pendingSwaps = 0, pendingHandovers = 0 }: {
         <Zap className="h-4 w-4 text-indigo-500" />
         <h2 className="text-sm font-semibold text-gray-700">Quick Actions</h2>
       </div>
-      <div className={cn("grid gap-3", actions.length <= 4 ? "grid-cols-4" : "grid-cols-3 sm:grid-cols-6")}>
+      <div className={cn("grid gap-3", actions.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6")}>
         {actions.map(qa => <QuickActionCard key={qa.href} qa={qa} />)}
       </div>
     </div>
@@ -467,7 +467,7 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
     <div className="space-y-6">
       <QuickActions user={user} />
       {/* High-level ops metrics */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6">
         <MetricCard label="Active Contractors" value={metrics.totalContractors} icon={Users} colorClass="text-teal-600" />
         <MetricCard label="Active Shifts Now" value={liveActiveCount} icon={Activity} colorClass="text-indigo-600" />
         <MetricCard label="Logs (24h)" value={metrics.logsLast24h} icon={FilePlus} colorClass="text-blue-600" />
@@ -771,7 +771,7 @@ export function DashboardWorkspace({
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Page header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
