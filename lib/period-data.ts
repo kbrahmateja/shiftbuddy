@@ -179,6 +179,33 @@ export const ANALYTICS_PERIODS: Record<PeriodKey, AnalyticsPeriodData> = {
 
 // ── Historical data (for past-period navigation) ─────────────────────────────
 
+/**
+ * Daily history — last 7 days (May 19–25, 2026). oldest first.
+ * shortLabel stores ISO date "YYYY-MM-DD" (used by calendar picker).
+ */
+export const DAILY_HISTORY: AnalyticsPeriodData[] = [
+  analyticsData("daily", "19 May 2026", "2026-05-19", "May 19, 2026",  7, 86, 0,1,3,2, 2.6, 96, 2,100, 12,100),
+  analyticsData("daily", "20 May 2026", "2026-05-20", "May 20, 2026",  9, 89, 1,2,4,2, 2.8, 97, 3,100, 12,100),
+  analyticsData("daily", "21 May 2026", "2026-05-21", "May 21, 2026",  8, 88, 0,2,4,2, 2.7, 96, 3,100, 12,100),
+  analyticsData("daily", "22 May 2026", "2026-05-22", "May 22, 2026", 11, 91, 1,2,5,3, 2.9, 97, 3,100, 12,100),
+  analyticsData("daily", "23 May 2026", "2026-05-23", "May 23, 2026",  6, 83, 0,1,3,2, 3.0, 95, 2,100, 12,100),
+  analyticsData("daily", "24 May 2026", "2026-05-24", "May 24, 2026",  5, 80, 0,1,2,2, 2.5, 95, 2,100, 12,100),
+  analyticsData("daily", "25 May 2026", "2026-05-25", "May 25, 2026",  9, 89, 1,2,4,2, 2.8, 97, 3,100, 12,100),
+];
+
+/**
+ * Weekly history — last 6 weeks (oldest first).
+ * shortLabel stores ISO Monday date "YYYY-MM-DD" (used by calendar picker).
+ */
+export const WEEKLY_HISTORY: AnalyticsPeriodData[] = [
+  analyticsData("weekly", "14–20 Apr 2026", "2026-04-14", "Apr 14 – Apr 20, 2026", 48,90, 3,7,22,11, 3.2,95, 17,94, 84,97),
+  analyticsData("weekly", "21–27 Apr 2026", "2026-04-21", "Apr 21 – Apr 27, 2026", 50,90, 3,8,23,11, 3.1,96, 17,95, 84,98),
+  analyticsData("weekly", "28 Apr–4 May 2026","2026-04-28","Apr 28 – May 4, 2026", 51,91, 3,8,23,12, 3.1,96, 18,95, 84,98),
+  analyticsData("weekly", "5–11 May 2026",  "2026-05-05", "May 5 – May 11, 2026",  49,90, 3,7,22,12, 3.2,95, 17,94, 84,97),
+  analyticsData("weekly", "12–18 May 2026", "2026-05-12", "May 12 – May 18, 2026", 51,91, 3,8,23,12, 3.1,96, 18,95, 84,98),
+  analyticsData("weekly", "19–25 May 2026", "2026-05-19", "May 19 – May 25, 2026", 52,91, 3,8,24,12, 3.1,96, 18,95, 84,98),
+];
+
 /** Yearly history — oldest first, current last */
 export const YEARLY_HISTORY: AnalyticsPeriodData[] = [
   analyticsData("yearly", "FY 2023", "Yearly", "Jan – Dec 2023",

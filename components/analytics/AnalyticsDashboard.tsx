@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Download, ChevronLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react";
 import {
   ANALYTICS_PERIODS,
+  DAILY_HISTORY,
+  WEEKLY_HISTORY,
   YEARLY_HISTORY,
   QUARTERLY_HISTORY,
   MONTHLY_HISTORY,
@@ -14,9 +16,43 @@ import {
 } from "@/lib/period-data";
 import { cn } from "@/lib/utils";
 
-// ── Label helpers ──────────────────────────────────────────────────────────────
+// ── Calendar helpers ──────────────────────────────────────────────────────────
 
-const MONTH_SHORT_A = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_SHORT_A  = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES_A  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WEEKDAY_LBL_A  = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+
+function buildDayGridA(y: number, m: number): (number | null)[][] {
+  const firstDow  = new Date(y, m, 1).getDay();
+  const daysInMon = new Date(y, m + 1, 0).getDate();
+  const offset    = firstDow === 0 ? 6 : firstDow - 1;
+  const cells: (number | null)[] = [
+    ...Array(offset).fill(null),
+    ...Array.from({ length: daysInMon }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+/** Monday of ISO week containing (y, m, d) */
+function weekMonA(y: number, m: number, d: number): Date {
+  const dt  = new Date(y, m, d);
+  const dow = dt.getDay();
+  const off = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(dt);
+  mon.setDate(dt.getDate() + off);
+  return mon;
+}
+
+/** ISO string → Date */
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// ── Label helpers ──────────────────────────────────────────────────────────────
 
 /** "Dec 2025" → { year:2025, monthIdx:11 } */
 function parseMonthlyLabel(label: string) {
@@ -24,7 +60,7 @@ function parseMonthlyLabel(label: string) {
   return { year: parseInt(yr, 10), monthIdx: MONTH_SHORT_A.indexOf(mon) };
 }
 
-/** "Q3 2025" → { year:2025, q:3 }  (1-indexed) */
+/** "Q3 2025" → { year:2025, q:3 } (1-indexed) */
 function parseQuarterlyLabel(label: string) {
   const [q, yr] = label.split(" ");
   return { year: parseInt(yr, 10), q: parseInt(q[1], 10) };
@@ -38,6 +74,11 @@ function parseYearlyLabel(label: string) {
 function extractYear(label: string, period: PeriodKey): number {
   if (period === "monthly")   return parseMonthlyLabel(label).year;
   if (period === "quarterly") return parseQuarterlyLabel(label).year;
+  if (period === "daily" || period === "weekly") {
+    // last word is the year  e.g. "25 May 2026" or "14–20 Apr 2026"
+    const parts = label.split(" ");
+    return parseInt(parts[parts.length - 1], 10);
+  }
   return parseYearlyLabel(label);
 }
 
@@ -57,14 +98,35 @@ function AnalyticsCalendarPicker({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const currentEntry = history[currentIdx];
-  const minYear = Math.min(...history.map(e => extractYear(e.label, period)));
-  const maxYear = Math.max(...history.map(e => extractYear(e.label, period)));
-  const [pickerYear, setPickerYear] = useState(() => extractYear(currentEntry.label, period));
+  const curEntry  = history[currentIdx];
+  const minYear   = Math.min(...history.map(e => extractYear(e.label, period)));
+  const maxYear   = Math.max(...history.map(e => extractYear(e.label, period)));
+  const initYear  = extractYear(curEntry.label, period);
 
-  // Sync picker year when selection changes externally
+  const [pickerYear,  setPickerYear]  = useState(initYear);
+  const [pickerMonth, setPickerMonth] = useState(() => {
+    if (period === "daily") {
+      const d = isoToDate(curEntry.shortLabel);
+      return d.getMonth();
+    }
+    if (period === "weekly") {
+      const d = isoToDate(curEntry.shortLabel);
+      return d.getMonth();
+    }
+    return 0;
+  });
+
+  const today = new Date();
+  const todayY = today.getFullYear();
+  const todayM = today.getMonth();
+  const todayD = today.getDate();
+
   useEffect(() => {
-    setPickerYear(extractYear(history[currentIdx].label, period));
+    const y = extractYear(history[currentIdx].label, period);
+    setPickerYear(y);
+    if (period === "daily" || period === "weekly") {
+      setPickerMonth(isoToDate(history[currentIdx].shortLabel).getMonth());
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx]);
 
@@ -81,6 +143,41 @@ function AnalyticsCalendarPicker({
     if (idx !== -1) { onSelect(idx); setOpen(false); }
   }
 
+  // Month nav helpers (for day/week grid)
+  function prevMonthA() {
+    if (pickerMonth === 0) { setPickerYear(y => y - 1); setPickerMonth(11); }
+    else setPickerMonth(m => m - 1);
+  }
+  function nextMonthA() {
+    const atMax = pickerYear > todayY || (pickerYear === todayY && pickerMonth >= todayM);
+    if (atMax) return;
+    if (pickerMonth === 11) { setPickerYear(y => y + 1); setPickerMonth(0); }
+    else setPickerMonth(m => m + 1);
+  }
+  const nextMonthDisabled = pickerYear > todayY || (pickerYear === todayY && pickerMonth >= todayM);
+
+  const isDayGrid  = period === "daily";
+  const isWeekGrid = period === "weekly";
+
+  // Build set of available ISO dates (shortLabels) for quick lookup
+  const availableISO = new Set(history.map(e => e.shortLabel));
+
+  // Find entry whose shortLabel == Monday ISO of (pickerYear, pickerMonth, d)
+  function entryForDay(d: number): AnalyticsPeriodData | undefined {
+    if (isDayGrid) {
+      const iso = `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      return history.find(e => e.shortLabel === iso);
+    }
+    if (isWeekGrid) {
+      const mon = weekMonA(pickerYear, pickerMonth, d);
+      const iso = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
+      return history.find(e => e.shortLabel === iso);
+    }
+  }
+
+  // Currently selected day / week-monday ISO
+  const selISO = curEntry.shortLabel;
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -88,53 +185,156 @@ function AnalyticsCalendarPicker({
         className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all shadow-sm"
       >
         <CalendarDays className="h-4 w-4 text-indigo-500" />
-        {currentEntry.label}
+        {curEntry.label}
         <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-2 z-30 rounded-2xl border bg-white shadow-xl p-4 w-68 min-w-[260px]">
+        <div className="absolute top-full left-0 mt-2 z-30 rounded-2xl border bg-white shadow-xl p-4 min-w-[260px]">
 
-          {/* Year nav */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setPickerYear(y => Math.max(y - 1, minYear))}
-              disabled={pickerYear <= minYear}
-              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30"
-            >
-              <ChevronLeft className="h-4 w-4 text-gray-600" />
-            </button>
-            <span className="text-sm font-bold text-gray-800">
-              {period === "yearly" ? `FY ${pickerYear}` : pickerYear}
-            </span>
-            <button
-              onClick={() => setPickerYear(y => Math.min(y + 1, maxYear))}
-              disabled={pickerYear >= maxYear}
-              className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30"
-            >
-              <ChevronRight className="h-4 w-4 text-gray-600" />
-            </button>
-          </div>
+          {/* ── Day grid (daily) ── */}
+          {isDayGrid && (() => {
+            const weeks = buildDayGridA(pickerYear, pickerMonth);
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={prevMonthA} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <span className="text-sm font-bold text-gray-800">
+                    {MONTH_NAMES_A[pickerMonth]} {pickerYear}
+                  </span>
+                  <button onClick={nextMonthA} disabled={nextMonthDisabled}
+                    className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                    <ChevronRight className="h-4 w-4 text-gray-600" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 mb-1">
+                  {WEEKDAY_LBL_A.map(w => (
+                    <div key={w} className="text-center text-[10px] font-semibold text-gray-400 py-1">{w}</div>
+                  ))}
+                </div>
+                <div className="space-y-0.5">
+                  {weeks.map((week, wi) => (
+                    <div key={wi} className="grid grid-cols-7">
+                      {week.map((d, di) => {
+                        if (d === null) return <div key={di} />;
+                        const entry   = entryForDay(d);
+                        const iso     = `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                        const active  = iso === selISO;
+                        const isToday = pickerYear === todayY && pickerMonth === todayM && d === todayD;
+                        return (
+                          <button key={di} onClick={() => entry && pickEntry(entry)} disabled={!entry}
+                            className={cn(
+                              "relative flex items-center justify-center h-8 w-full rounded-lg text-xs transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                              active ? "bg-indigo-600 text-white font-bold shadow-sm" : entry ? "text-gray-700 hover:bg-indigo-50" : "text-gray-300"
+                            )}>
+                            {d}
+                            {isToday && !active && (
+                              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-indigo-400" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-center text-[10px] text-gray-400">Bold days have data · greyed = no data</p>
+              </>
+            );
+          })()}
+
+          {/* ── Week grid (weekly) ── */}
+          {isWeekGrid && (() => {
+            const weeks = buildDayGridA(pickerYear, pickerMonth);
+            // Selected week's monday ISO
+            const selMon = isoToDate(selISO);
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={prevMonthA} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <span className="text-sm font-bold text-gray-800">
+                    {MONTH_NAMES_A[pickerMonth]} {pickerYear}
+                  </span>
+                  <button onClick={nextMonthA} disabled={nextMonthDisabled}
+                    className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                    <ChevronRight className="h-4 w-4 text-gray-600" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 mb-1">
+                  {WEEKDAY_LBL_A.map(w => (
+                    <div key={w} className="text-center text-[10px] font-semibold text-gray-400 py-1">{w}</div>
+                  ))}
+                </div>
+                <div className="space-y-0.5">
+                  {weeks.map((week, wi) => {
+                    // Find first valid day in this row to identify the week's monday
+                    const firstD  = week.find(d => d !== null);
+                    const rowEntry = firstD != null ? entryForDay(firstD) : undefined;
+                    const rowMon  = firstD != null ? weekMonA(pickerYear, pickerMonth, firstD) : null;
+                    const rowSel  = rowMon && rowMon.getTime() === selMon.getTime();
+                    return (
+                      <div key={wi}
+                        onClick={() => rowEntry && pickEntry(rowEntry)}
+                        className={cn(
+                          "grid grid-cols-7 rounded-lg transition-colors",
+                          rowEntry ? "cursor-pointer" : "cursor-default",
+                          rowSel ? "bg-indigo-100" : rowEntry ? "hover:bg-indigo-50" : ""
+                        )}>
+                        {week.map((d, di) => {
+                          if (d === null) return <div key={di} className="h-8" />;
+                          const isToday = pickerYear === todayY && pickerMonth === todayM && d === todayD;
+                          return (
+                            <div key={di}
+                              className={cn(
+                                "relative flex items-center justify-center h-8 text-xs rounded-lg",
+                                rowSel ? "text-indigo-700 font-semibold" : rowEntry ? "text-gray-700" : "text-gray-300"
+                              )}>
+                              {d}
+                              {isToday && (
+                                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-indigo-400" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-center text-[10px] text-gray-400">Click a week row to select it</p>
+              </>
+            );
+          })()}
+
+          {/* ── Year nav (non-day/week periods) ── */}
+          {!isDayGrid && !isWeekGrid && (
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => setPickerYear(y => Math.max(y - 1, minYear))} disabled={pickerYear <= minYear}
+                className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                <ChevronLeft className="h-4 w-4 text-gray-600" />
+              </button>
+              <span className="text-sm font-bold text-gray-800">
+                {period === "yearly" ? `FY ${pickerYear}` : pickerYear}
+              </span>
+              <button onClick={() => setPickerYear(y => Math.min(y + 1, maxYear))} disabled={pickerYear >= maxYear}
+                className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-30">
+                <ChevronRight className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+          )}
 
           {/* Monthly grid */}
           {period === "monthly" && (
             <div className="grid grid-cols-3 gap-1.5">
               {MONTH_SHORT_A.map((mn, i) => {
-                const entry = history.find(e => {
-                  const p = parseMonthlyLabel(e.label);
-                  return p.year === pickerYear && p.monthIdx === i;
-                });
+                const entry  = history.find(e => { const p = parseMonthlyLabel(e.label); return p.year === pickerYear && p.monthIdx === i; });
                 const active = entry && history.indexOf(entry) === currentIdx;
                 return (
-                  <button
-                    key={mn}
-                    onClick={() => entry && pickEntry(entry)}
-                    disabled={!entry}
-                    className={cn(
-                      "rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
-                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "hover:bg-indigo-50 text-gray-700" : "text-gray-300"
-                    )}
-                  >
+                  <button key={mn} onClick={() => entry && pickEntry(entry)} disabled={!entry}
+                    className={cn("rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "hover:bg-indigo-50 text-gray-700" : "text-gray-300")}>
                     {mn}
                   </button>
                 );
@@ -145,27 +345,14 @@ function AnalyticsCalendarPicker({
           {/* Quarterly grid */}
           {period === "quarterly" && (
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Q1", sub: "Jan – Mar", q: 1 },
-                { label: "Q2", sub: "Apr – Jun", q: 2 },
-                { label: "Q3", sub: "Jul – Sep", q: 3 },
-                { label: "Q4", sub: "Oct – Dec", q: 4 },
-              ].map(qd => {
-                const entry = history.find(e => {
-                  const p = parseQuarterlyLabel(e.label);
-                  return p.year === pickerYear && p.q === qd.q;
-                });
+              {[{ label:"Q1",sub:"Jan – Mar",q:1 },{ label:"Q2",sub:"Apr – Jun",q:2 },
+                { label:"Q3",sub:"Jul – Sep",q:3 },{ label:"Q4",sub:"Oct – Dec",q:4 }].map(qd => {
+                const entry  = history.find(e => { const p = parseQuarterlyLabel(e.label); return p.year === pickerYear && p.q === qd.q; });
                 const active = entry && history.indexOf(entry) === currentIdx;
                 return (
-                  <button
-                    key={qd.label}
-                    onClick={() => entry && pickEntry(entry)}
-                    disabled={!entry}
-                    className={cn(
-                      "rounded-xl py-3 text-center transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
-                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "bg-gray-50 hover:bg-indigo-50 text-gray-700" : "bg-gray-50 text-gray-300"
-                    )}
-                  >
+                  <button key={qd.label} onClick={() => entry && pickEntry(entry)} disabled={!entry}
+                    className={cn("rounded-xl py-3 text-center transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                      active ? "bg-indigo-600 text-white shadow-sm" : entry ? "bg-gray-50 hover:bg-indigo-50 text-gray-700" : "bg-gray-50 text-gray-300")}>
                     <div className="text-sm font-bold">{qd.label}</div>
                     <div className="text-[10px] opacity-75 mt-0.5">{qd.sub}</div>
                   </button>
@@ -174,29 +361,42 @@ function AnalyticsCalendarPicker({
             </div>
           )}
 
-          {/* Yearly — single button */}
-          {period === "yearly" && (
-            (() => {
-              const entry = history.find(e => parseYearlyLabel(e.label) === pickerYear);
-              const active = entry && history.indexOf(entry) === currentIdx;
-              return (
-                <button
-                  onClick={() => entry && pickEntry(entry)}
-                  disabled={!entry}
-                  className={cn(
-                    "w-full rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
-                    active ? "bg-indigo-600 text-white" : entry ? "bg-gray-100 text-gray-700 hover:bg-indigo-50" : "bg-gray-100 text-gray-300"
-                  )}
-                >
-                  {entry ? `Select FY ${pickerYear}` : `No data for ${pickerYear}`}
-                </button>
-              );
-            })()
+          {/* Half-yearly */}
+          {period === "half-yearly" && (
+            <div className="grid grid-cols-2 gap-2">
+              {[{ label:"H1",sub:"Jan – Jun",q:1 },{ label:"H2",sub:"Jul – Dec",q:2 }].map((hd, i) => {
+                // half-yearly has no history, just show current highlighted
+                const active = i === 0; // always H1/H2 based on current
+                return (
+                  <button key={hd.label} disabled
+                    className={cn("rounded-xl py-4 text-center disabled:opacity-40 cursor-default",
+                      "bg-gray-50 text-gray-500")}>
+                    <div className="text-sm font-bold">{hd.label}</div>
+                    <div className="text-[10px] opacity-75 mt-0.5">{hd.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
           )}
 
-          <p className="mt-3 text-center text-[10px] text-gray-400">
-            {period === "monthly" ? "Greyed months have no data" : "Navigate year with arrows"}
-          </p>
+          {/* Yearly */}
+          {period === "yearly" && (() => {
+            const entry  = history.find(e => parseYearlyLabel(e.label) === pickerYear);
+            const active = entry && history.indexOf(entry) === currentIdx;
+            return (
+              <button onClick={() => entry && pickEntry(entry)} disabled={!entry}
+                className={cn("w-full rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-25 disabled:cursor-not-allowed",
+                  active ? "bg-indigo-600 text-white" : entry ? "bg-gray-100 text-gray-700 hover:bg-indigo-50" : "bg-gray-100 text-gray-300")}>
+                {entry ? `Select FY ${pickerYear}` : `No data for ${pickerYear}`}
+              </button>
+            );
+          })()}
+
+          {!isDayGrid && !isWeekGrid && (
+            <p className="mt-3 text-center text-[10px] text-gray-400">
+              {period === "monthly" ? "Greyed = no data" : "Navigate with year arrows"}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -214,27 +414,39 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
   yearly:        "Yearly",
 };
 
-/** Returns the history array + initial index (latest) for navigable periods */
+/** Returns the history array for every navigable period */
 function getHistory(period: PeriodKey): AnalyticsPeriodData[] | null {
-  if (period === "yearly")    return YEARLY_HISTORY;
-  if (period === "quarterly") return QUARTERLY_HISTORY;
+  if (period === "daily")     return DAILY_HISTORY;
+  if (period === "weekly")    return WEEKLY_HISTORY;
   if (period === "monthly")   return MONTHLY_HISTORY;
-  return null;
+  if (period === "quarterly") return QUARTERLY_HISTORY;
+  if (period === "yearly")    return YEARLY_HISTORY;
+  return null; // half-yearly has no history
 }
 
 export function AnalyticsDashboard() {
   const [period, setPeriod] = useState<PeriodKey>("weekly");
 
-  // Per-history-period: track which index is selected (default = latest)
-  const [yearIdx,    setYearIdx]    = useState(YEARLY_HISTORY.length - 1);
-  const [quarterIdx, setQuarterIdx] = useState(QUARTERLY_HISTORY.length - 1);
+  // Per-period: track which history index is selected (default = latest)
+  const [dailyIdx,   setDailyIdx]   = useState(DAILY_HISTORY.length - 1);
+  const [weeklyIdx,  setWeeklyIdx]  = useState(WEEKLY_HISTORY.length - 1);
   const [monthIdx,   setMonthIdx]   = useState(MONTHLY_HISTORY.length - 1);
+  const [quarterIdx, setQuarterIdx] = useState(QUARTERLY_HISTORY.length - 1);
+  const [yearIdx,    setYearIdx]    = useState(YEARLY_HISTORY.length - 1);
 
-  function getIdx()    { return period === "yearly" ? yearIdx : period === "quarterly" ? quarterIdx : monthIdx; }
+  function getIdx() {
+    if (period === "daily")     return dailyIdx;
+    if (period === "weekly")    return weeklyIdx;
+    if (period === "monthly")   return monthIdx;
+    if (period === "quarterly") return quarterIdx;
+    return yearIdx;
+  }
   function setIdx(i: number) {
-    if (period === "yearly")    setYearIdx(i);
+    if (period === "daily")          setDailyIdx(i);
+    else if (period === "weekly")    setWeeklyIdx(i);
+    else if (period === "monthly")   setMonthIdx(i);
     else if (period === "quarterly") setQuarterIdx(i);
-    else setMonthIdx(i);
+    else                             setYearIdx(i);
   }
 
   const history = getHistory(period);
@@ -297,17 +509,25 @@ export function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Period navigation — calendar picker for monthly / quarterly / yearly */}
-      {history && (
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Period navigation — calendar picker for all periods */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {history ? (
           <AnalyticsCalendarPicker
             period={period}
             history={history}
             currentIdx={getIdx()}
             onSelect={setIdx}
           />
+        ) : (
+          /* half-yearly: show a static label button (no history to navigate) */
+          <div className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-medium text-gray-500 shadow-sm">
+            <CalendarDays className="h-4 w-4 text-indigo-400" />
+            {data.label}
+          </div>
+        )}
 
-          {/* Prev / Next arrows (kept for quick step) */}
+        {/* Prev / Next arrows (shown only when there is history) */}
+        {history && (
           <div className="flex items-center gap-1 rounded-xl border bg-white px-2 py-1.5 shadow-sm">
             <button
               onClick={() => setIdx(getIdx() - 1)}
@@ -329,8 +549,8 @@ export function AnalyticsDashboard() {
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
