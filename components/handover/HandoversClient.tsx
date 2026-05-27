@@ -2,49 +2,62 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import {
+  CheckCircle2, XCircle, ChevronDown, ChevronUp,
+  LogIn, LogOut, Clock, Users, AlertTriangle, UserCheck,
+} from "lucide-react";
 import { MOCK_HANDOVERS, MOCK_USERS } from "@/lib/mock-data";
 import type { SessionUser, MemberSubmission } from "@/types";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "sb_member_submissions";
 
+// ── Member submission seeds ───────────────────────────────────
+
 const SEED_SUBMISSIONS: MemberSubmission[] = [
   {
-    id: "seed_sub_01",
-    userId: "u_bp_01",
-    userName: "Kiran Reddy",
-    projectId: "proj_browse",
-    projectName: "Browse + Profile",
-    shift: "Morning",
-    openItems: "INC0034512 — Product search returning stale cache results on /search?q=shoes. Intermittent, ~20% of requests. Raised with infra team, no fix yet.",
-    resolvedItems: "INC0034489 — Customer profile page 500 error resolved by reverting bad CDN config deployed yesterday. Validated by QA.",
-    notes: "Keep an eye on the Redis eviction alerts — they spiked twice between 09:00–10:30 IST. Threshold may need tuning.",
-    submittedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // 25 min ago
+    id: "seed_sub_01", userId: "u_bp_01", userName: "Kiran Reddy",
+    projectId: "proj_browse", projectName: "Browse + Profile", shift: "Morning",
+    openItems: "INC0034512 — Product search returning stale cache results on /search?q=shoes. Intermittent, ~20% of requests.",
+    resolvedItems: "INC0034489 — Customer profile page 500 error resolved by reverting bad CDN config. Validated by QA.",
+    notes: "Keep an eye on Redis eviction alerts — spiked twice between 09:00–10:30 IST.",
+    submittedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
   },
   {
-    id: "seed_sub_02",
-    userId: "u_ck_02",
-    userName: "Priya Nair",
-    projectId: "proj_checkout",
-    projectName: "Checkout + Bag",
-    shift: "Morning",
-    openItems: "INC0034521 — Bag count badge not updating on iOS Safari v17. Reproducible. PagerDuty alert P3_MEDIUM still open.",
-    resolvedItems: "INC0034490 — Promo code SUMMER20 causing cart total miscalculation fixed. Hotfix deployed at 08:45 IST. SN ticket CHG0034101 closed.",
-    notes: "Deployment freeze lifted at 10:00. Safe to push the cart v2 diff if QA signs off.",
-    submittedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(), // 18 min ago
+    id: "seed_sub_02", userId: "u_ck_02", userName: "Priya Nair",
+    projectId: "proj_checkout", projectName: "Checkout + Bag", shift: "Morning",
+    openItems: "INC0034521 — Bag count badge not updating on iOS Safari v17. PagerDuty P3 still open.",
+    resolvedItems: "INC0034490 — Promo code SUMMER20 cart miscalculation fixed. Hotfix deployed 08:45 IST.",
+    notes: "Deployment freeze lifted at 10:00. Safe to push cart v2 if QA signs off.",
+    submittedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
   },
   {
-    id: "seed_sub_03",
-    userId: "u_bp_03",
-    userName: "Arjun Menon",
-    projectId: "proj_payment_core",
-    projectName: "OnlinePayment + Core",
-    shift: "Morning",
-    openItems: "No open P1/P2 items. One P4 — duplicate email notifications for order confirmation (INC0034515, low traffic impact).",
-    resolvedItems: "Stripe webhook retry storm from 06:15–07:00 IST handled. Rate limit adjusted. 312 duplicate charge events discarded safely.",
+    id: "seed_sub_03", userId: "u_bp_03", userName: "Arjun Menon",
+    projectId: "proj_payment_core", projectName: "OnlinePayment + Core", shift: "Morning",
+    openItems: "No open P1/P2. One P4 — duplicate order-confirmation emails (INC0034515).",
+    resolvedItems: "Stripe webhook retry storm handled. 312 duplicate charge events discarded.",
     notes: "",
-    submittedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 min ago
+    submittedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
   },
 ];
+
+// ── Attendance types ──────────────────────────────────────────
+
+interface AttendeeEntry {
+  name: string;
+  role: "LEAD" | "EMPLOYEE" | "CONTRACTOR";
+  isActingLead?: boolean;
+  present: boolean;
+  absentReason?: string;
+  clockIn?: string;
+  clockOut?: string;
+}
+
+interface ShiftAttendance {
+  shiftLabel: string;
+  attendees: AttendeeEntry[];
+  quorumMet: boolean;
+}
 
 interface LeadHandoverRecord {
   id: string;
@@ -53,130 +66,367 @@ interface LeadHandoverRecord {
   shiftFrom: string;
   shiftTo: string;
   status: "SUBMITTED" | "ACKNOWLEDGED" | "DISPUTED";
-  submittedAt: string; // ISO
+  submittedAt: string;
   openItemsSummary: string;
   resolvedSummary: string;
   leadNotes: string;
-  memberCount: number;
+  closing: ShiftAttendance;
+  opening: ShiftAttendance;
 }
+
+function t(h: number, m: number) {
+  const d = new Date(); d.setHours(h, m, 0, 0); return d.toISOString();
+}
+
+// ── Seed handover records with full attendance ────────────────
 
 const SEED_LEAD_HANDOVERS: LeadHandoverRecord[] = [
   {
     id: "lh_01",
     leadName: "MadhaviLatha K",
     project: "Checkout + Bag",
-    shiftFrom: "Morning (05:30–14:30)",
-    shiftTo: "Afternoon (13:30–22:30)",
+    shiftFrom: "S1 · Morning",
+    shiftTo: "S2 · Afternoon",
     status: "ACKNOWLEDGED",
-    submittedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(), // 55 min ago
-    openItemsSummary:
-      "• INC0034521 — Bag count badge broken on iOS Safari v17 (P3). Owned by Priya Nair, no ETA.\n• INC0034518 — Intermittent 504s on /checkout/confirm during peak (P2). Load balancer team engaged.",
-    resolvedSummary:
-      "• INC0034490 — Promo code SUMMER20 cart miscalculation hotfix deployed & validated. CHG0034101 closed.\n• INC0034503 — Payment timeout spike (07:00–08:15 IST) root-caused to upstream Stripe latency; auto-resolved.",
-    leadNotes:
-      "Incoming lead: watch INC0034518 closely — if 504s breach 2% error rate again, escalate to infra immediately. Deploy window open 14:00–15:00 IST for cart v2.",
-    memberCount: 4,
+    submittedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
+    openItemsSummary: "• INC0034521 — Bag count badge broken on iOS Safari v17 (P3). No ETA.\n• INC0034518 — Intermittent 504s on /checkout/confirm (P2). Load balancer team engaged.",
+    resolvedSummary: "• INC0034490 — Promo code SUMMER20 cart miscalculation hotfix deployed.\n• INC0034503 — Payment timeout spike auto-resolved after Stripe latency normalised.",
+    leadNotes: "Watch INC0034518 closely — if 504s breach 2% error rate, escalate to infra. Deploy window 14:00–15:00 IST for cart v2.",
+    closing: {
+      shiftLabel: "S1 · Morning (05:30–13:30)", quorumMet: true,
+      attendees: [
+        { name: "Ankit Singh",    role: "LEAD",     present: true,  clockIn: t(5,33),  clockOut: t(13,28) },
+        { name: "Sonam Bhardwaj", role: "EMPLOYEE", present: true,  clockIn: t(5,29),  clockOut: t(13,31) },
+        { name: "Meenu Singh",    role: "EMPLOYEE", present: true,  clockIn: t(5,35),  clockOut: t(13,30) },
+        { name: "Ankit Bisht",    role: "EMPLOYEE", present: false, absentReason: "On Leave" },
+        { name: "Rajbir Syal",    role: "EMPLOYEE", present: true,  clockIn: t(5,27),  clockOut: t(13,29) },
+      ],
+    },
+    opening: {
+      shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
+      attendees: [
+        { name: "Prateek Agarwal",  role: "LEAD",     present: true,  clockIn: t(13,27) },
+        { name: "Rajeev Kumar",     role: "EMPLOYEE", present: true,  clockIn: t(13,32) },
+        { name: "Abhinandan Patil", role: "EMPLOYEE", present: true,  clockIn: t(13,28) },
+        { name: "Samadhan Jadhav",  role: "EMPLOYEE", present: false, absentReason: "WFH – Connectivity Issue" },
+        { name: "Amit Sharma",      role: "EMPLOYEE", present: true,  clockIn: t(13,29) },
+      ],
+    },
   },
   {
     id: "lh_02",
     leadName: "Prateek Agarwal",
     project: "Browse + Profile",
-    shiftFrom: "Night (21:30–06:30)",
-    shiftTo: "Morning (05:30–14:30)",
+    shiftFrom: "S2 · Afternoon",
+    shiftTo: "S3 · Night",
     status: "SUBMITTED",
-    submittedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 min ago
-    openItemsSummary:
-      "• INC0034512 — Stale search cache on /search (P3), ~20% requests affected. Redis flush scheduled 06:00 IST — not yet executed, carry over.\n• INC0034527 — Profile image upload failing for files >5 MB (P4). Ticket open with storage team.",
-    resolvedSummary:
-      "• INC0034489 — CDN config rollback completed 23:45 IST; profile page 500s cleared. Validated by 3 QA runs.\n• Routine DB vacuum completed 02:30 IST — query performance back to baseline.",
-    leadNotes:
-      "Redis flush must happen before 08:00 IST or search SLA will breach. Confirm with Kiran Reddy on morning shift.",
-    memberCount: 3,
+    submittedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    openItemsSummary: "• INC0034512 — Stale search cache on /search (P3), ~20% requests. Redis flush carry-over.\n• INC0034527 — Profile image upload failing >5 MB (P4). Storage team ticket open.",
+    resolvedSummary: "• INC0034489 — CDN config rollback completed 23:45 IST. Profile page 500s cleared.\n• Routine DB vacuum completed 02:30 IST — performance back to baseline.",
+    leadNotes: "Redis flush must happen before 08:00 IST or search SLA will breach. Confirm with Kiran Reddy.",
+    closing: {
+      shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
+      attendees: [
+        { name: "Prateek Agarwal", role: "LEAD",     present: true,  clockIn: t(13,27), clockOut: t(21,29) },
+        { name: "Amit Sharma",     role: "EMPLOYEE", present: true,  clockIn: t(13,29), clockOut: t(21,31) },
+        { name: "Debashish Ray",   role: "EMPLOYEE", present: false, absentReason: "No Show" },
+        { name: "Vijay Kiran",     role: "EMPLOYEE", present: true,  clockIn: t(13,30), clockOut: t(21,30) },
+        { name: "Brahmateja K",    role: "EMPLOYEE", present: true,  clockIn: t(13,32), clockOut: t(21,28) },
+      ],
+    },
+    opening: {
+      shiftLabel: "S3 · Night (21:30–05:30)", quorumMet: true,
+      attendees: [
+        { name: "MadhaviLatha K",    role: "LEAD",       present: false, absentReason: "Medical Emergency" },
+        { name: "Dipak Rahangadale", role: "EMPLOYEE",   present: true,  isActingLead: true, clockIn: t(21,29) },
+        { name: "Brahmateja K",      role: "EMPLOYEE",   present: true,  clockIn: t(21,32) },
+        { name: "Chaitanya A",       role: "CONTRACTOR", present: true,  clockIn: t(21,35) },
+        { name: "Shivam Rathor",     role: "EMPLOYEE",   present: true,  clockIn: t(21,31) },
+      ],
+    },
   },
   {
     id: "lh_03",
     leadName: "MadhaviLatha K",
     project: "OnlinePayment + Core",
-    shiftFrom: "Morning (05:30–14:30)",
-    shiftTo: "Afternoon (13:30–22:30)",
+    shiftFrom: "S1 · Morning",
+    shiftTo: "S2 · Afternoon",
     status: "SUBMITTED",
-    submittedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(), // 12 min ago
-    openItemsSummary:
-      "• INC0034515 — Duplicate order-confirmation emails (P4). Rate ~0.3%, cosmetic. Eng ticket open.\n• Monitoring: Stripe webhook DLQ has 8 unprocessed events — being replayed manually.",
-    resolvedSummary:
-      "• Webhook retry storm (06:15–07:00 IST) contained. 312 duplicate charge events safely discarded after dedup check.\n• PagerDuty alert PD-A8X3K closed after payment latency normalised at 07:45 IST.",
+    submittedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+    openItemsSummary: "• INC0034515 — Duplicate order-confirmation emails (P4). Rate ~0.3%.\n• Stripe webhook DLQ has 8 unprocessed events — being replayed manually.",
+    resolvedSummary: "• Webhook retry storm (06:15–07:00 IST) contained. 312 duplicate events discarded.\n• PagerDuty alert PD-A8X3K closed after payment latency normalised.",
     leadNotes: "No P1/P2 carry-over. DLQ replay is low-risk but check completion by 15:00.",
-    memberCount: 3,
+    closing: {
+      shiftLabel: "S1 · Morning (05:30–13:30)", quorumMet: true,
+      attendees: [
+        { name: "Ankit Singh",  role: "LEAD",     present: true,  clockIn: t(5,33),  clockOut: t(13,28) },
+        { name: "Rajbir Syal",  role: "EMPLOYEE", present: true,  clockIn: t(5,27),  clockOut: t(13,29) },
+        { name: "Ankit Bisht",  role: "EMPLOYEE", present: true,  clockIn: t(5,31),  clockOut: t(13,30) },
+        { name: "Manish Kumar", role: "EMPLOYEE", present: false, absentReason: "On Leave" },
+      ],
+    },
+    opening: {
+      shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
+      attendees: [
+        { name: "Prateek Agarwal", role: "LEAD",     present: true, clockIn: t(13,27) },
+        { name: "Samadhan Jadhav", role: "EMPLOYEE", present: true, clockIn: t(13,31) },
+        { name: "Ankit Bisht",     role: "EMPLOYEE", present: true, clockIn: t(13,35) },
+        { name: "Sravani Popuri",  role: "EMPLOYEE", present: true, clockIn: t(13,34) },
+      ],
+    },
   },
 ];
 
+// ── Status styles ─────────────────────────────────────────────
+
 const STATUS_STYLES: Record<string, string> = {
   DRAFT:        "bg-gray-100 text-gray-700",
-  SUBMITTED:    "bg-yellow-100 text-yellow-800",
-  ACKNOWLEDGED: "bg-green-100 text-green-800",
-  DISPUTED:     "bg-red-100 text-red-800",
+  SUBMITTED:    "bg-amber-100 text-amber-800",
+  ACKNOWLEDGED: "bg-emerald-100 text-emerald-700",
+  DISPUTED:     "bg-red-100 text-red-700",
 };
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+function durStr(cin: string, cout: string) {
+  const ms = new Date(cout).getTime() - new Date(cin).getTime();
+  const h = Math.floor(ms / 3_600_000), m = Math.floor((ms % 3_600_000) / 60_000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ── Attendance column ─────────────────────────────────────────
+
+function AttendanceColumn({ data, side }: { data: ShiftAttendance; side: "closing" | "opening" }) {
+  const presentCount = data.attendees.filter(a => a.present).length;
+  return (
+    <div className={cn(
+      "flex-1 rounded-xl border-2 p-3 space-y-2",
+      side === "closing" ? "border-amber-200 bg-amber-50/40" : "border-emerald-200 bg-emerald-50/40"
+    )}>
+      {/* Column header */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold",
+            side === "closing" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")}>
+            {side === "closing" ? "Closing Shift" : "Opening Shift"}
+          </span>
+          <p className="text-[10px] text-gray-500 mt-0.5">{data.shiftLabel}</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px]">
+          <Users className="h-3 w-3 text-gray-400" />
+          <span className="text-gray-500">{presentCount}/{data.attendees.length}</span>
+          {data.quorumMet
+            ? <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700"><CheckCircle2 className="h-2.5 w-2.5" /> Quorum</span>
+            : <span className="flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[8px] font-bold text-red-700"><AlertTriangle className="h-2.5 w-2.5" /> No quorum</span>
+          }
+        </div>
+      </div>
+
+      {/* Attendee rows */}
+      <div className="space-y-1">
+        {data.attendees.map((a) => (
+          <div key={a.name} className={cn(
+            "rounded-lg border px-2.5 py-1.5",
+            !a.present ? "border-red-100 bg-red-50/60" :
+            a.isActingLead ? "border-amber-200 bg-amber-50" :
+            "border-gray-100 bg-white"
+          )}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={cn(
+                  "h-5 w-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold",
+                  a.role === "LEAD" ? "bg-indigo-100 text-indigo-700" :
+                  a.role === "CONTRACTOR" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500"
+                )}>
+                  {a.name.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}
+                </span>
+                <span className="text-[11px] font-medium text-gray-800 truncate">{a.name}</span>
+                {a.role === "LEAD" && !a.isActingLead && (
+                  <span className="shrink-0 rounded-full bg-indigo-100 px-1 py-0.5 text-[8px] font-bold text-indigo-700">LEAD</span>
+                )}
+                {a.isActingLead && (
+                  <span className="shrink-0 flex items-center gap-0.5 rounded-full bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[8px] font-bold text-amber-700">
+                    <UserCheck className="h-2.5 w-2.5" /> Acting Lead
+                  </span>
+                )}
+                {a.role === "CONTRACTOR" && !a.isActingLead && (
+                  <span className="shrink-0 rounded-full bg-purple-100 px-1 py-0.5 text-[8px] font-bold text-purple-700">C</span>
+                )}
+              </div>
+              {a.present
+                ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                : <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+              }
+            </div>
+
+            {/* Clock times */}
+            {a.present && a.clockIn && (
+              <div className="mt-0.5 ml-7 flex items-center gap-2 flex-wrap text-[10px]">
+                <span className="flex items-center gap-0.5 text-emerald-700"><LogIn className="h-2.5 w-2.5" />{fmtTime(a.clockIn)}</span>
+                {a.clockOut
+                  ? <>
+                      <span className="flex items-center gap-0.5 text-red-600"><LogOut className="h-2.5 w-2.5" />{fmtTime(a.clockOut)}</span>
+                      <span className="flex items-center gap-0.5 text-gray-400"><Clock className="h-2.5 w-2.5" />{durStr(a.clockIn, a.clockOut)}</span>
+                    </>
+                  : <span className="flex items-center gap-0.5 text-indigo-500"><span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />Active</span>
+                }
+              </div>
+            )}
+
+            {/* Absent reason */}
+            {!a.present && a.absentReason && (
+              <p className="mt-0.5 ml-7 text-[10px] text-red-500 italic">{a.absentReason}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Manager handover card ─────────────────────────────────────
+
+function ManagerHandoverCard({ lh }: { lh: LeadHandoverRecord }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const closingPresent = lh.closing.attendees.filter(a => a.present).length;
+  const openingPresent = lh.opening.attendees.filter(a => a.present).length;
+  const actingLead = lh.opening.attendees.find(a => a.isActingLead);
+  const absentLead = lh.opening.attendees.find(a => a.role === "LEAD" && !a.present);
+
+  return (
+    <div className="border-b last:border-b-0">
+      <div className="px-5 py-4 space-y-3">
+        {/* Row 1: header */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-900">{lh.leadName}</span>
+            <span className="text-xs text-gray-300">·</span>
+            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{lh.project}</span>
+            <span className="text-xs text-gray-400">{lh.shiftFrom} → {lh.shiftTo}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_STYLES[lh.status] ?? "bg-gray-100 text-gray-700")}>
+              {lh.status}
+            </span>
+            <span className="text-xs text-gray-400">
+              {new Date(lh.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 2: attendance summary chips */}
+        <div className="flex items-center gap-3 flex-wrap text-xs">
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Closing</span>
+            <span>{closingPresent}/{lh.closing.attendees.length} present</span>
+            {lh.closing.quorumMet
+              ? <span className="text-emerald-600 font-semibold">✓ Quorum</span>
+              : <span className="text-red-500 font-semibold">✗ No quorum</span>}
+          </div>
+          <span className="text-gray-200">|</span>
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Opening</span>
+            <span>{openingPresent}/{lh.opening.attendees.length} present</span>
+            {lh.opening.quorumMet
+              ? <span className="text-emerald-600 font-semibold">✓ Quorum</span>
+              : <span className="text-red-500 font-semibold">✗ No quorum</span>}
+          </div>
+          {actingLead && absentLead && (
+            <>
+              <span className="text-gray-200">|</span>
+              <span className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-amber-700">
+                <UserCheck className="h-3 w-3" />
+                {absentLead.name} absent → <strong>{actingLead.name}</strong> acting lead
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Expand toggle */}
+        <button onClick={() => setExpanded(v => !v)}
+          className="flex items-center gap-1 text-[11px] text-indigo-600 hover:underline">
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {expanded ? "Hide attendance details" : "View attendance details"}
+        </button>
+      </div>
+
+      {/* Expanded attendance */}
+      {expanded && (
+        <div className="px-5 pb-4 flex gap-3">
+          <AttendanceColumn data={lh.closing} side="closing" />
+          <AttendanceColumn data={lh.opening} side="opening" />
+        </div>
+      )}
+
+      {/* Handover content */}
+      <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div>
+          <p className="font-semibold text-red-500 uppercase tracking-wide mb-1">Open Items</p>
+          <p className="text-gray-600 whitespace-pre-line">{lh.openItemsSummary}</p>
+        </div>
+        <div>
+          <p className="font-semibold text-emerald-600 uppercase tracking-wide mb-1">Resolved</p>
+          <p className="text-gray-600 whitespace-pre-line">{lh.resolvedSummary}</p>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-400 uppercase tracking-wide mb-1">Lead Notes</p>
+          <p className="text-gray-600">{lh.leadNotes}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Local storage helpers ─────────────────────────────────────
 
 function getLocalSubmissions(): MemberSubmission[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"); }
   catch { return []; }
 }
-
-/** Merge seed data with real localStorage submissions (localStorage overrides seed for same userId) */
 function getAllSubmissions(): MemberSubmission[] {
   const local = getLocalSubmissions();
-  const localUserIds = new Set(local.map((s) => s.userId));
-  const seeds = SEED_SUBMISSIONS.filter((s) => !localUserIds.has(s.userId));
-  return [...seeds, ...local].sort(
-    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-  );
+  const localUserIds = new Set(local.map(s => s.userId));
+  const seeds = SEED_SUBMISSIONS.filter(s => !localUserIds.has(s.userId));
+  return [...seeds, ...local].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 }
-
 function saveSubmission(sub: MemberSubmission) {
-  const existing = getLocalSubmissions().filter((s) => s.userId !== sub.userId);
+  const existing = getLocalSubmissions().filter(s => s.userId !== sub.userId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...existing, sub]));
 }
+
+// ── Main component ────────────────────────────────────────────
 
 interface Props { user: SessionUser; }
 
 export function HandoversClient({ user }: Props) {
   const [submissions, setSubmissions] = useState<MemberSubmission[]>([]);
-  const [showModal, setShowModal]     = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ openItems: "", resolvedItems: "", notes: "" });
 
-  const isContributor  = user.role === "CONTRACTOR" || user.role === "EMPLOYEE";
-  const isLeadOrAbove  = user.role === "LEAD" || user.role === "MANAGER";
+  const isContributor = user.role === "CONTRACTOR" || user.role === "EMPLOYEE";
+  const isLeadOrAbove = user.role === "LEAD" || user.role === "MANAGER";
 
   useEffect(() => {
     const subs = getAllSubmissions();
     setSubmissions(subs);
-    // Pre-fill form from prior submission if editing
-    const mine = subs.find((s) => s.userId === user.id);
+    const mine = subs.find(s => s.userId === user.id);
     if (mine) setForm({ openItems: mine.openItems, resolvedItems: mine.resolvedItems, notes: mine.notes });
   }, [user.id]);
 
-  const mySubmission = submissions.find((s) => s.userId === user.id);
-
-  function openModal() {
-    const mine = getAllSubmissions().find((s) => s.userId === user.id);
-    if (mine) setForm({ openItems: mine.openItems, resolvedItems: mine.resolvedItems, notes: mine.notes });
-    setShowModal(true);
-  }
+  const mySubmission = submissions.find(s => s.userId === user.id);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const sub: MemberSubmission = {
-      id:           mySubmission?.id ?? `sub_${Date.now()}`,
-      userId:       user.id,
-      userName:     user.name,
-      projectId:    user.activeProjectId ?? "unknown",
-      projectName:  "My Project",
-      shift:        "Current Shift",
-      openItems:    form.openItems,
-      resolvedItems: form.resolvedItems,
-      notes:        form.notes,
-      submittedAt:  new Date().toISOString(),
+      id: `sub_${Date.now()}`, userId: user.id, userName: user.name,
+      projectId: user.activeProjectId ?? "proj_browse",
+      projectName: "Browse + Profile", shift: "Current",
+      ...form, submittedAt: new Date().toISOString(),
     };
     saveSubmission(sub);
     setSubmissions(getAllSubmissions());
@@ -184,24 +434,20 @@ export function HandoversClient({ user }: Props) {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-5xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Shift Handovers</h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            {isContributor
-              ? "Submit your shift update so your lead can compile the handover."
+            {isContributor ? "Submit your shift update so your lead can compile the handover."
               : "Review team submissions and compile the final shift handover."}
           </p>
         </div>
-
         <div className="flex items-center gap-2">
           {user.role === "MANAGER" && (
-            <Link
-              href="/dashboard/handovers/report"
-              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+            <Link href="/dashboard/handovers/report"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
@@ -209,27 +455,22 @@ export function HandoversClient({ user }: Props) {
             </Link>
           )}
           {isContributor && (
-            <button
-              onClick={openModal}
-              className={`inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors ${
-                mySubmission ? "bg-emerald-600 hover:bg-emerald-700" : "bg-indigo-600 hover:bg-indigo-700"
-              }`}
-            >
+            <button onClick={() => setShowModal(true)}
+              className={cn("inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors",
+                mySubmission ? "bg-emerald-600 hover:bg-emerald-700" : "bg-indigo-600 hover:bg-indigo-700")}>
               {mySubmission ? "✓ Edit My Update" : "+ Submit My Update"}
             </button>
           )}
           {user.role === "LEAD" && (
-            <Link
-              href="/dashboard/handovers/new"
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            >
+            <Link href="/dashboard/handovers/new"
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
               Compile Handover
             </Link>
           )}
         </div>
       </div>
 
-      {/* My submission banner — contractors / employees */}
+      {/* My submission banner */}
       {isContributor && mySubmission && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
           <div className="flex items-center justify-between">
@@ -254,113 +495,43 @@ export function HandoversClient({ user }: Props) {
               Team Submissions <span className="ml-1 text-gray-400 font-normal">({submissions.length})</span>
             </h2>
             {submissions.length > 0 && user.role === "LEAD" && (
-              <Link href="/dashboard/handovers/new" className="text-xs text-indigo-600 hover:underline">
-                Compile handover →
-              </Link>
+              <Link href="/dashboard/handovers/new" className="text-xs text-indigo-600 hover:underline">Compile handover →</Link>
             )}
           </div>
-
-          {submissions.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">
-              No member submissions yet. Team members submit their shift updates here before handover.
-            </div>
-          ) : (
-            <div className="divide-y">
-              {submissions.map((sub) => (
-                <div key={sub.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-900">{sub.userName}</span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(sub.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
+          {submissions.length === 0
+            ? <div className="p-8 text-center text-sm text-gray-400">No member submissions yet.</div>
+            : <div className="divide-y">
+                {submissions.map(sub => (
+                  <div key={sub.id} className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900">{sub.userName}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(sub.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      {sub.openItems && <div><p className="font-medium text-red-600 mb-0.5">Open Items</p><p className="text-gray-600">{sub.openItems}</p></div>}
+                      {sub.resolvedItems && <div><p className="font-medium text-emerald-600 mb-0.5">Resolved</p><p className="text-gray-600">{sub.resolvedItems}</p></div>}
+                      {sub.notes && <div><p className="font-medium text-gray-500 mb-0.5">Notes to Lead</p><p className="text-gray-600">{sub.notes}</p></div>}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    {sub.openItems && (
-                      <div>
-                        <p className="font-medium text-red-600 mb-0.5">Open Items</p>
-                        <p className="text-gray-600">{sub.openItems}</p>
-                      </div>
-                    )}
-                    {sub.resolvedItems && (
-                      <div>
-                        <p className="font-medium text-emerald-600 mb-0.5">Resolved</p>
-                        <p className="text-gray-600">{sub.resolvedItems}</p>
-                      </div>
-                    )}
-                    {sub.notes && (
-                      <div>
-                        <p className="font-medium text-gray-500 mb-0.5">Notes to Lead</p>
-                        <p className="text-gray-600">{sub.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+          }
         </div>
       )}
 
-      {/* Lead compiled handovers — MANAGER view */}
+      {/* Manager: Shift Lead Submissions with attendance */}
       {user.role === "MANAGER" && (
         <div className="rounded-lg border bg-white">
           <div className="flex items-center justify-between px-5 py-3.5 border-b">
             <h2 className="text-sm font-semibold text-gray-700">
-              Shift Lead Submissions{" "}
-              <span className="ml-1 text-gray-400 font-normal">({SEED_LEAD_HANDOVERS.length})</span>
+              Shift Lead Submissions <span className="ml-1 text-gray-400 font-normal">({SEED_LEAD_HANDOVERS.length})</span>
             </h2>
             <span className="text-xs text-gray-400">Current shift cycle</span>
           </div>
-          <div className="divide-y">
-            {SEED_LEAD_HANDOVERS.map((lh) => {
-              const statusStyle =
-                lh.status === "ACKNOWLEDGED"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : lh.status === "DISPUTED"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-amber-100 text-amber-700";
-              return (
-                <div key={lh.id} className="px-5 py-4 space-y-3">
-                  {/* Row header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-sm font-semibold text-gray-900">{lh.leadName}</span>
-                      <span className="text-xs text-gray-400">·</span>
-                      <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
-                        {lh.project}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {lh.shiftFrom} → {lh.shiftTo}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyle}`}>
-                        {lh.status}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(lh.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                      <span className="text-xs text-gray-400">· {lh.memberCount} member updates</span>
-                    </div>
-                  </div>
-                  {/* Content grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <p className="font-semibold text-red-500 uppercase tracking-wide mb-1">Open Items</p>
-                      <p className="text-gray-600 whitespace-pre-line">{lh.openItemsSummary}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-emerald-600 uppercase tracking-wide mb-1">Resolved</p>
-                      <p className="text-gray-600 whitespace-pre-line">{lh.resolvedSummary}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-400 uppercase tracking-wide mb-1">Lead Notes</p>
-                      <p className="text-gray-600">{lh.leadNotes}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div>
+            {SEED_LEAD_HANDOVERS.map(lh => <ManagerHandoverCard key={lh.id} lh={lh} />)}
           </div>
         </div>
       )}
@@ -368,57 +539,35 @@ export function HandoversClient({ user }: Props) {
       {/* Past handover records */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Handover Records</h2>
-        {MOCK_HANDOVERS.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 p-12 text-center">
-            <p className="text-sm text-gray-500">No handover records yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {MOCK_HANDOVERS.map((h) => {
-              const outgoing = MOCK_USERS.find((u) => u.id === h.outgoingLeadId);
-              const incoming = MOCK_USERS.find((u) => u.id === h.incomingLeadId);
-              const isOverdue = !h.acknowledgedAt && !!h.dueBy && h.dueBy < new Date();
-              return (
-                <Link
-                  key={h.id}
-                  href={`/dashboard/handovers/${h.id}`}
-                  className="block rounded-lg border bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[h.status] ?? "bg-gray-100 text-gray-700"}`}>
-                          {h.status}
-                        </span>
-                        {isOverdue && (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
-                            OVERDUE
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-400">
-                          {outgoing?.name ?? "Unknown"} → {incoming?.name ?? "Unknown"}
-                        </span>
+        {MOCK_HANDOVERS.length === 0
+          ? <div className="rounded-lg border border-dashed border-gray-200 p-12 text-center"><p className="text-sm text-gray-500">No handover records yet.</p></div>
+          : <div className="space-y-3">
+              {MOCK_HANDOVERS.map(h => {
+                const outgoing = MOCK_USERS.find(u => u.id === h.outgoingLeadId);
+                const incoming = MOCK_USERS.find(u => u.id === h.incomingLeadId);
+                const isOverdue = !h.acknowledgedAt && !!h.dueBy && h.dueBy < new Date();
+                return (
+                  <Link key={h.id} href={`/dashboard/handovers/${h.id}`}
+                    className="block rounded-lg border bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_STYLES[h.status] ?? "bg-gray-100 text-gray-700")}>{h.status}</span>
+                          {isOverdue && <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">OVERDUE</span>}
+                          <span className="text-xs text-gray-400">{outgoing?.name ?? "Unknown"} → {incoming?.name ?? "Unknown"}</span>
+                        </div>
+                        <p className="mt-1.5 text-sm text-gray-700 line-clamp-2">{h.openItemsSummary}</p>
                       </div>
-                      <p className="mt-1.5 text-sm text-gray-700 line-clamp-2">{h.openItemsSummary}</p>
+                      <div className="text-right shrink-0">
+                        {h.dueBy && <p className="text-xs text-gray-400">Due {h.dueBy.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
+                        {h.submittedAt && <p className="text-xs text-gray-400">Submitted {h.submittedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      {h.dueBy && (
-                        <p className="text-xs text-gray-400">
-                          Due {h.dueBy.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      )}
-                      {h.submittedAt && (
-                        <p className="text-xs text-gray-400">
-                          Submitted {h.submittedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                  </Link>
+                );
+              })}
+            </div>
+        }
       </div>
 
       {/* Submit Update Modal */}
@@ -431,50 +580,29 @@ export function HandoversClient({ user }: Props) {
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Open Items <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  required
-                  value={form.openItems}
-                  onChange={(e) => setForm((f) => ({ ...f, openItems: e.target.value }))}
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Open Items <span className="text-red-500">*</span></label>
+                <textarea required value={form.openItems} onChange={e => setForm(f => ({ ...f, openItems: e.target.value }))}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
-                  placeholder="Describe any unresolved items, active incidents, or blockers…"
-                />
+                  placeholder="Describe any unresolved items, active incidents, or blockers…" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Resolved This Shift <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  required
-                  value={form.resolvedItems}
-                  onChange={(e) => setForm((f) => ({ ...f, resolvedItems: e.target.value }))}
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Resolved This Shift <span className="text-red-500">*</span></label>
+                <textarea required value={form.resolvedItems} onChange={e => setForm(f => ({ ...f, resolvedItems: e.target.value }))}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
-                  placeholder="What was resolved or completed during your shift…"
-                />
+                  placeholder="What was resolved or completed during your shift…" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes for Lead</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[60px]"
-                  placeholder="Anything specific the lead should know or watch out for…"
-                />
+                  placeholder="Anything the lead should know or watch out for…" />
               </div>
               <div className="flex gap-3 pt-1">
-                <button
-                  type="submit"
-                  className="flex-1 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
-                >
+                <button type="submit" className="flex-1 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
                   {mySubmission ? "Update Submission" : "Submit Update"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Cancel
                 </button>
               </div>

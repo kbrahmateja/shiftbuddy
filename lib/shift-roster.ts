@@ -58,7 +58,7 @@ const RAW_MEMBERS: [string, string, string, string, ShiftCode, "EMPLOYEE" | "LEA
   ["u_ck_05", "MadhaviLatha",            "madhavi.latha@hcl.com",         "proj_checkout",     "Shift3", "LEAD"],
   ["u_ck_06", "Shivam Rathor",           "shivam.rathor@hcl.com",         "proj_checkout",     "Shift3", "EMPLOYEE"],
   // Payment Core
-  ["u_pc_01", "Ankit Singh",             "ankit.singh@hcl.com",           "proj_payment_core", "Shift1", "EMPLOYEE"],
+  ["u_pc_01", "Ankit Singh",             "ankit.singh@hcl.com",           "proj_payment_core", "Shift1", "LEAD"],    // temp lead
   ["u_pc_02", "Rajbir Syal",             "rajbir.syal@hcl.com",           "proj_payment_core", "Shift1", "EMPLOYEE"],
   ["u_pc_03", "Samadhan Jadhav",         "samadhan.jadhav@hcl.com",       "proj_payment_core", "Shift2", "EMPLOYEE"],
   ["u_pc_04", "Ankit Bisht",             "ankit.bisht@hcl.com",           "proj_payment_core", "Shift2", "EMPLOYEE"],
@@ -88,8 +88,12 @@ const RAW_MEMBERS: [string, string, string, string, ShiftCode, "EMPLOYEE" | "LEA
   // PT-WebApp
   ["u_wa_01", "Salipalli Naga Raju",     "naga.raju@hcl.com",             "proj_webapp",       "Shift1", "EMPLOYEE"],
   ["u_wa_02", "Bharat Kumar Reddy Daka", "bharat.daka@hcl.com",           "proj_webapp",       "Shift2", "EMPLOYEE"],
+  ["u_wa_03", "Neelkandan",              "neelkandan@hcl.com",            "proj_webapp",       "Shift2", "EMPLOYEE"],
   ["u_wa_04", "Arafath Ali Shaik",       "arafath.shaik@hcl.com",         "proj_webapp",       "Shift2", "EMPLOYEE"],
   ["u_wa_05", "Ramamohan Yedluru",       "ramamohan.yedluru@hcl.com",     "proj_webapp",       "Shift3", "EMPLOYEE"],
+  // DAM
+  ["u_dm_05", "Manish Kumar",            "manish.kumar@hcl.com",          "proj_dam",          "Shift1", "EMPLOYEE"],
+  ["u_dm_01", "Puralasetti Vinodvarma",  "vinodvarma@hcl.com",            "proj_dam",          "Shift3", "EMPLOYEE"],
 ];
 
 export const ALL_SHIFT_MEMBERS: ShiftMember[] = RAW_MEMBERS.map(

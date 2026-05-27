@@ -40,6 +40,14 @@ export function getOpenRecord(userId: string): AttendanceRecord | undefined {
   return getAttendanceRecords().find((r) => r.userId === userId && !r.clockOut);
 }
 
+/** Returns today's attendance record for any userId (open or completed) */
+export function getTodayRecordForUser(userId: string): AttendanceRecord | undefined {
+  const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+  return getAttendanceRecords()
+    .filter((r) => r.userId === userId)
+    .find((r) => r.clockIn.slice(0, 10) === todayStr);
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 export function getAttendanceNotifications(): AttendanceNotification[] {
