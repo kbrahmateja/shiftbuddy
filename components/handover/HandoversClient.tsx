@@ -82,27 +82,31 @@ function t(h: number, m: number) {
 
 const SEED_LEAD_HANDOVERS: LeadHandoverRecord[] = [
   {
+    // S1 → S2 handover compiled by Ankit Singh (Shift1 lead, temp)
     id: "lh_01",
-    leadName: "MadhaviLatha K",
-    project: "Checkout + Bag",
+    leadName: "Ankit Singh",
+    project: "Payment Core",
     shiftFrom: "S1 · Morning",
     shiftTo: "S2 · Afternoon",
     status: "ACKNOWLEDGED",
     submittedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
-    openItemsSummary: "• INC0034521 — Bag count badge broken on iOS Safari v17 (P3). No ETA.\n• INC0034518 — Intermittent 504s on /checkout/confirm (P2). Load balancer team engaged.",
-    resolvedSummary: "• INC0034490 — Promo code SUMMER20 cart miscalculation hotfix deployed.\n• INC0034503 — Payment timeout spike auto-resolved after Stripe latency normalised.",
-    leadNotes: "Watch INC0034518 closely — if 504s breach 2% error rate, escalate to infra. Deploy window 14:00–15:00 IST for cart v2.",
+    openItemsSummary: "• INC0034515 — Duplicate order-confirmation emails (P4). Rate ~0.3%.\n• INC0034518 — Intermittent 504s on /checkout/confirm (P2). Load balancer team engaged.",
+    resolvedSummary: "• Stripe webhook retry storm (06:15–07:00 IST) contained. 312 duplicate events discarded.\n• PagerDuty alert PD-A8X3K closed after payment latency normalised.",
+    leadNotes: "Watch INC0034518 closely — if 504s breach 2% error rate, escalate to infra. Deploy window 14:00–15:00 IST.",
     closing: {
+      // S1 members — Ankit Singh is lead (temp)
       shiftLabel: "S1 · Morning (05:30–13:30)", quorumMet: true,
       attendees: [
         { name: "Ankit Singh",    role: "LEAD",     present: true,  clockIn: t(5,33),  clockOut: t(13,28) },
+        { name: "Rajbir Syal",    role: "EMPLOYEE", present: true,  clockIn: t(5,27),  clockOut: t(13,29) },
         { name: "Sonam Bhardwaj", role: "EMPLOYEE", present: true,  clockIn: t(5,29),  clockOut: t(13,31) },
         { name: "Meenu Singh",    role: "EMPLOYEE", present: true,  clockIn: t(5,35),  clockOut: t(13,30) },
-        { name: "Ankit Bisht",    role: "EMPLOYEE", present: false, absentReason: "On Leave" },
-        { name: "Rajbir Syal",    role: "EMPLOYEE", present: true,  clockIn: t(5,27),  clockOut: t(13,29) },
+        { name: "Manish Kumar",   role: "EMPLOYEE", present: false, absentReason: "On Leave" },
+        { name: "Karthik Sharma", role: "EMPLOYEE", present: true,  clockIn: t(5,40),  clockOut: t(13,32) },
       ],
     },
     opening: {
+      // S2 members — Prateek Agarwal is lead
       shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
       attendees: [
         { name: "Prateek Agarwal",  role: "LEAD",     present: true,  clockIn: t(13,27) },
@@ -110,10 +114,12 @@ const SEED_LEAD_HANDOVERS: LeadHandoverRecord[] = [
         { name: "Abhinandan Patil", role: "EMPLOYEE", present: true,  clockIn: t(13,28) },
         { name: "Samadhan Jadhav",  role: "EMPLOYEE", present: false, absentReason: "WFH – Connectivity Issue" },
         { name: "Amit Sharma",      role: "EMPLOYEE", present: true,  clockIn: t(13,29) },
+        { name: "Ankit Bisht",      role: "EMPLOYEE", present: true,  clockIn: t(13,31) },
       ],
     },
   },
   {
+    // S2 → S3 handover compiled by Prateek Agarwal (Shift2 lead)
     id: "lh_02",
     leadName: "Prateek Agarwal",
     project: "Browse + Profile",
@@ -122,19 +128,22 @@ const SEED_LEAD_HANDOVERS: LeadHandoverRecord[] = [
     status: "SUBMITTED",
     submittedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     openItemsSummary: "• INC0034512 — Stale search cache on /search (P3), ~20% requests. Redis flush carry-over.\n• INC0034527 — Profile image upload failing >5 MB (P4). Storage team ticket open.",
-    resolvedSummary: "• INC0034489 — CDN config rollback completed 23:45 IST. Profile page 500s cleared.\n• Routine DB vacuum completed 02:30 IST — performance back to baseline.",
-    leadNotes: "Redis flush must happen before 08:00 IST or search SLA will breach. Confirm with Kiran Reddy.",
+    resolvedSummary: "• INC0034489 — CDN config rollback completed. Profile page 500s cleared.\n• Routine DB vacuum completed — performance back to baseline.",
+    leadNotes: "Redis flush must happen before 08:00 IST or search SLA will breach. MadhaviLatha to confirm.",
     closing: {
+      // S2 members — Prateek Agarwal is lead
       shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
       attendees: [
-        { name: "Prateek Agarwal", role: "LEAD",     present: true,  clockIn: t(13,27), clockOut: t(21,29) },
-        { name: "Amit Sharma",     role: "EMPLOYEE", present: true,  clockIn: t(13,29), clockOut: t(21,31) },
-        { name: "Debashish Ray",   role: "EMPLOYEE", present: false, absentReason: "No Show" },
-        { name: "Vijay Kiran",     role: "EMPLOYEE", present: true,  clockIn: t(13,30), clockOut: t(21,30) },
-        { name: "Brahmateja K",    role: "EMPLOYEE", present: true,  clockIn: t(13,32), clockOut: t(21,28) },
+        { name: "Prateek Agarwal",  role: "LEAD",     present: true,  clockIn: t(13,27), clockOut: t(21,29) },
+        { name: "Amit Sharma",      role: "EMPLOYEE", present: true,  clockIn: t(13,29), clockOut: t(21,31) },
+        { name: "Debashish Ray",    role: "EMPLOYEE", present: false, absentReason: "No Show" },
+        { name: "P C Vijay Kiran",  role: "EMPLOYEE", present: true,  clockIn: t(13,30), clockOut: t(21,30) },
+        { name: "Brahmateja K",     role: "EMPLOYEE", present: true,  clockIn: t(13,32), clockOut: t(21,28) },
+        { name: "Samadhan Jadhav",  role: "EMPLOYEE", present: true,  clockIn: t(13,35), clockOut: t(21,33) },
       ],
     },
     opening: {
+      // S3 members — MadhaviLatha is lead (absent → Dipak acting lead)
       shiftLabel: "S3 · Night (21:30–05:30)", quorumMet: true,
       attendees: [
         { name: "MadhaviLatha K",    role: "LEAD",       present: false, absentReason: "Medical Emergency" },
@@ -142,36 +151,44 @@ const SEED_LEAD_HANDOVERS: LeadHandoverRecord[] = [
         { name: "Brahmateja K",      role: "EMPLOYEE",   present: true,  clockIn: t(21,32) },
         { name: "Chaitanya A",       role: "CONTRACTOR", present: true,  clockIn: t(21,35) },
         { name: "Shivam Rathor",     role: "EMPLOYEE",   present: true,  clockIn: t(21,31) },
+        { name: "Naveen Kodiaganti", role: "EMPLOYEE",   present: true,  clockIn: t(21,38) },
       ],
     },
   },
   {
+    // S3 → S1 handover compiled by MadhaviLatha (Shift3 lead, Checkout+Bag)
     id: "lh_03",
     leadName: "MadhaviLatha K",
-    project: "OnlinePayment + Core",
-    shiftFrom: "S1 · Morning",
-    shiftTo: "S2 · Afternoon",
+    project: "Checkout + Bag",
+    shiftFrom: "S3 · Night",
+    shiftTo: "S1 · Morning",
     status: "SUBMITTED",
     submittedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    openItemsSummary: "• INC0034515 — Duplicate order-confirmation emails (P4). Rate ~0.3%.\n• Stripe webhook DLQ has 8 unprocessed events — being replayed manually.",
-    resolvedSummary: "• Webhook retry storm (06:15–07:00 IST) contained. 312 duplicate events discarded.\n• PagerDuty alert PD-A8X3K closed after payment latency normalised.",
-    leadNotes: "No P1/P2 carry-over. DLQ replay is low-risk but check completion by 15:00.",
+    openItemsSummary: "• INC0034521 — Bag count badge broken on iOS Safari v17 (P3). Carry-over from previous shift.\n• INC0034533 — Intermittent 503 on /bag/add for international users (P2). DNS propagation suspected.",
+    resolvedSummary: "• INC0034490 — Promo code SUMMER20 cart miscalculation fully validated in prod.\n• Night batch job for cart session cleanup completed at 03:00 IST — 12k stale sessions purged.",
+    leadNotes: "INC0034533 needs urgent attention at 05:30 handover — escalate to infra if still open. Ankit to coordinate.",
     closing: {
-      shiftLabel: "S1 · Morning (05:30–13:30)", quorumMet: true,
+      // S3 members — MadhaviLatha is lead
+      shiftLabel: "S3 · Night (21:30–05:30)", quorumMet: true,
       attendees: [
-        { name: "Ankit Singh",  role: "LEAD",     present: true,  clockIn: t(5,33),  clockOut: t(13,28) },
-        { name: "Rajbir Syal",  role: "EMPLOYEE", present: true,  clockIn: t(5,27),  clockOut: t(13,29) },
-        { name: "Ankit Bisht",  role: "EMPLOYEE", present: true,  clockIn: t(5,31),  clockOut: t(13,30) },
-        { name: "Manish Kumar", role: "EMPLOYEE", present: false, absentReason: "On Leave" },
+        { name: "MadhaviLatha K",    role: "LEAD",       present: true,  clockIn: t(21,28), clockOut: t(5,31) },
+        { name: "Shivam Rathor",     role: "EMPLOYEE",   present: true,  clockIn: t(21,31), clockOut: t(5,30) },
+        { name: "Dipak Rahangadale", role: "EMPLOYEE",   present: true,  clockIn: t(21,29), clockOut: t(5,28) },
+        { name: "Chaitanya A",       role: "CONTRACTOR", present: false, absentReason: "Sick Leave" },
+        { name: "Karthikay Gupta",   role: "EMPLOYEE",   present: true,  clockIn: t(21,33), clockOut: t(5,34) },
+        { name: "Vinodh Darangula",  role: "EMPLOYEE",   present: true,  clockIn: t(21,35), clockOut: t(5,29) },
       ],
     },
     opening: {
-      shiftLabel: "S2 · Afternoon (13:30–21:30)", quorumMet: true,
+      // S1 members — Ankit Singh is lead (temp)
+      shiftLabel: "S1 · Morning (05:30–13:30)", quorumMet: true,
       attendees: [
-        { name: "Prateek Agarwal", role: "LEAD",     present: true, clockIn: t(13,27) },
-        { name: "Samadhan Jadhav", role: "EMPLOYEE", present: true, clockIn: t(13,31) },
-        { name: "Ankit Bisht",     role: "EMPLOYEE", present: true, clockIn: t(13,35) },
-        { name: "Sravani Popuri",  role: "EMPLOYEE", present: true, clockIn: t(13,34) },
+        { name: "Ankit Singh",    role: "LEAD",     present: true,  clockIn: t(5,33) },
+        { name: "Rajbir Syal",    role: "EMPLOYEE", present: true,  clockIn: t(5,27) },
+        { name: "Sonam Bhardwaj", role: "EMPLOYEE", present: true,  clockIn: t(5,29) },
+        { name: "Meenu Singh",    role: "EMPLOYEE", present: true,  clockIn: t(5,35) },
+        { name: "Karthik Sharma", role: "EMPLOYEE", present: false, absentReason: "On Leave" },
+        { name: "Manish Kumar",   role: "EMPLOYEE", present: true,  clockIn: t(5,40) },
       ],
     },
   },
