@@ -504,8 +504,8 @@ export function HandoversClient({ user }: Props) {
         </div>
       )}
 
-      {/* Team submissions — LEAD / MANAGER */}
-      {isLeadOrAbove && (
+      {/* Team submissions — LEAD only */}
+      {user.role === "LEAD" && (
         <div className="rounded-lg border bg-white">
           <div className="flex items-center justify-between px-5 py-3.5 border-b">
             <h2 className="text-sm font-semibold text-gray-700">
