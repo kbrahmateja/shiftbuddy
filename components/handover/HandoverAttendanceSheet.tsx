@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Clock3, XCircle, AlertTriangle, Users } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Users } from "lucide-react";
 import {
   getShiftMembers, getCurrentShiftCode, NEXT_SHIFT, SHIFT_SHORT,
   type ShiftMember, type ShiftCode,
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type AttendanceStatus = "PENDING" | "PRESENT" | "LATE" | "ABSENT";
+export type AttendanceStatus = "PENDING" | "PRESENT" | "ABSENT";
 
 export const ABSENT_REASONS = [
   "On Leave",
@@ -86,12 +86,6 @@ const STATUS_CONFIG: Record<
     row: "bg-emerald-50/60",
     btn: "bg-emerald-100 text-emerald-700 border-emerald-300",
   },
-  LATE:     {
-    label: "Late",
-    icon: <Clock3 className="h-3.5 w-3.5" />,
-    row: "bg-amber-50/60",
-    btn: "bg-amber-100 text-amber-700 border-amber-300",
-  },
   ABSENT:   {
     label: "Absent",
     icon: <XCircle className="h-3.5 w-3.5" />,
@@ -139,7 +133,7 @@ function AttendeeRow({ record, onChange }: AttendeeRowProps) {
 
         {/* Status buttons */}
         <div className="flex items-center gap-1 shrink-0">
-          {(["PRESENT", "LATE", "ABSENT"] as AttendanceStatus[]).map((s) => (
+          {(["PRESENT", "ABSENT"] as AttendanceStatus[]).map((s) => (
             <button
               key={s}
               onClick={() => onChange({ status: s, markedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), absentReason: s !== "ABSENT" ? undefined : record.absentReason })}
@@ -151,7 +145,7 @@ function AttendeeRow({ record, onChange }: AttendeeRowProps) {
               )}
             >
               {STATUS_CONFIG[s].icon}
-              {s === "PRESENT" ? "Present" : s === "LATE" ? "Late" : "Absent"}
+              {s === "PRESENT" ? "Present" : "Absent"}
             </button>
           ))}
         </div>
@@ -187,9 +181,9 @@ interface ShiftColumnProps {
 }
 
 function ShiftColumn({ title, shiftLabel, records, side, onChange }: ShiftColumnProps) {
-  const presentCount = records.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
+  const presentCount = records.filter((r) => r.status === "PRESENT").length;
   const pendingCount = records.filter((r) => r.status === "PENDING").length;
-  const hasLeadPresent = records.some((r) => r.role === "LEAD" && (r.status === "PRESENT" || r.status === "LATE"));
+  const hasLeadPresent = records.some((r) => r.role === "LEAD" && r.status === "PRESENT");
 
   return (
     <div className={cn(
