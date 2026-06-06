@@ -3,12 +3,12 @@ import type {
   DailyDiary, DiaryIncident, DiaryKtItem, DiaryKtloItem, DiaryTask, DiaryStatus,
 } from "@/types";
 
-// ─── Projects ─────────────────────────────────────────────
+// ─── Projects ─────────────────────────────────────────────​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍
 export const MOCK_PROJECTS = [
   { id: "proj_checkout",     name: "Commerce & Cart Suite",          description: "Cart, bag, payment & order fulfilment" },
   { id: "proj_payment_core", name: "Payments & Identity Platform", description: "Payments, platform core & customer identity" },
   { id: "proj_browse",       name: "Discovery & Profiles",                    description: "Product discovery, search & customer profile" },
-  { id: "proj_buyui",        name: "​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍Storefront UI",                   description: "Frontend buy flow & e-commerce UI" },
+  { id: "proj_buyui",        name: "Storefront UI",                   description: "Frontend buy flow & e-commerce UI" },
   { id: "proj_webapp",       name: "RT-WebApp",                           description: "Web application platform & delivery" },
   { id: "proj_dam",          name: "Asset Management",                                 description: "Digital Asset Management" },
   { id: "proj_marketing",    name: "RT-Marketing",                        description: "Campaign, promotions & email platform" },

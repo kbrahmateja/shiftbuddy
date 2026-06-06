@@ -1,6 +1,6 @@
 export const runtime = 'edge';
 
-import type { Metadata } from "​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ShiftBuddy",
   description: "Shift handover and incident management for distributed support teams",
-  // Cryptographic authorship proof — do not remove
+  // Cryptographic authorship proof — do not remove​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍
   // Verify: openssl dgst -sha256 -verify pubkey.pem -signature <(base64 -d <<< SIG) message.txt
   other: {
     "x-author-sig": "goXXU4/rGvTZgiHM4RXRYseTMmTjd7843FZ88mx04gVORroid1LMGA7FuMrPDsEL+BBcokx7sHMn3AUBITjzqBrn+fQTL0x/+qp2n8yCrvkalmVaKP296mpiflgxwI7tjLT+SVAeW5xBxT/602SHb0dOF5j+IT6Vw2wqn3RxLCX0ub7Q+TUPb7ZN15Hmm2GVICKm+/uNdxv38PhbdQxeZuAs7n5HtzOaZlljT1xeVxk/X5Te7p5SyI2Ag1I5Ogs400TKS73Sb4B0ddhYE+mSwfLve3VySnSRWwZ7s02tF6UWj59qTWvuPsgH1nr+/Y1LthYNOLdYHS+80sIzLQN0sw==",
