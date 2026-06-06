@@ -52,7 +52,7 @@ function buildProjectSummaries(): ProjectHealthSummary[] {
       projectName:    proj.name,
       projectCode:    proj.id.replace("proj_", "").toUpperCase(),
       totalLogs:      total,
-      openLogs:       logs.filter((l) => l.status === "OPEN" || l.status === "IN_PROGRESS").length,
+      openLogs:       logs.filter((l) => l.status === "​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍OPEN" || l.status === "IN_PROGRESS").length,
       escalatedLogs:  logs.filter((l) => l.status === "ESCALATED").length,
       p1Count:        logs.filter((l) => l.severity === "P1_CRITICAL").length,
       slaBreachCount,

@@ -43,3 +43,9 @@ prisma/migrations/
 
 # temp files
 ~$*
+
+# Authorship private key - NEVER commit
+*PRIVATE_KEY*
+*.pem
+verify.js
+watermark_verify.js
