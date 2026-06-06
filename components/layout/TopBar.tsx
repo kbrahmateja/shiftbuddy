@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+//
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Clock, Globe, Menu } from "lucide-react";
@@ -46,7 +47,7 @@ function buildBreadcrumb(pathname: string): { label: string; href: string }[] {
     report:         "Report",
     diary:          "Diary",
   };
-  const parts = pathname.replace(/^\//, "").split("/");​‌​​​​‌​‍​‌​​‌​‌‌‍​‌‌‌‌‌​​‍​‌​​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​​‌​​​​​‍​‌​​‌​‌‌‍​‌‌​​​​‌‍​‌‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​​‌​‍​‌‌​‌​​​‍​‌‌​‌‌‌‌‍​‌‌‌​‌​​‍​‌‌​‌‌​​‍​‌‌​​​​‌‍​‌‌‌‌‌​​‍​‌‌​‌​‌‌‍​‌‌​​​‌​‍​‌‌‌​​‌​‍​‌‌​​​​‌‍​‌‌​‌​​​‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌‌​‌​​‍​‌‌​​‌​‌‍​‌‌​‌​‌​‍​‌‌​​​​‌‍​‌​​​​​​‍​‌‌​​‌‌‌‍​‌‌​‌‌​‌‍​‌‌​​​​‌‍​‌‌​‌​​‌‍​‌‌​‌‌​​‍​​‌​‌‌‌​‍​‌‌​​​‌‌‍​‌‌​‌‌‌‌‍​‌‌​‌‌​‌‍​‌‌‌‌‌​​‍​​‌‌​​‌​‍​​‌‌​​​​‍​​‌‌​​‌​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​​‌​‌‌​‌‍​​‌‌​​​​‍​​‌‌​‌‌​‍​‌‌‌‌‌​​‍​‌​‌​​‌‌‍​‌‌​‌​​​‍​‌‌​‌​​‌‍​‌‌​​‌‌​‍​‌‌‌​‌​​‍​‌​​​​‌​‍​‌‌‌​‌​‌‍​‌‌​​‌​​‍​‌‌​​‌​​‍​‌‌‌‌​​‌‍
+  const parts = pathname.replace(/^\//, "").split("/");
   return parts.reduce(
     (acc, segment, idx) => {
       const href = "/" + parts.slice(0, idx + 1).join("/");
