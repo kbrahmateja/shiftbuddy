@@ -8,7 +8,7 @@ import {
   Download, Activity, RefreshCw, CalendarDays, UserCheck,
   Layers, ChevronRight, Bell, Ticket, Hash, Video, MessageCircle,
   Wifi, BookOpenCheck, Zap, LogIn, LogOut, ClipboardCheck,
-  UserCog, FolderOpen,
+  UserCog, FolderOpen, X, SlidersHorizontal,
 } from "lucide-react";
 import { cn, SOURCE_CONFIG, SEVERITY_CONFIG, ROLE_CONFIG, pluralize } from "@/lib/utils";
 import type {
@@ -445,244 +445,385 @@ function LeadView({
 }
 
 // ─────────────────────────────────────────────
-// VALUE CREATION ESTIMATION PANEL
+// VALUE CREATION ESTIMATION — SIDE PANEL
 // ─────────────────────────────────────────────
-
-const VALUE_TASKS = [
-  {
-    label:   "Log entry (per occurrence)",
-    before:  120,  // minutes
-    after:   20,
-    freq:    "~12/day × 365 days",
-    annualOccurrences: 12 * 365,
-    rate:    600,  // ₹/hr — member rate
-    who:     "Members",
-  },
-  {
-    label:   "Shift handover (per shift)",
-    before:  120,
-    after:   20,
-    freq:    "3 shifts × 365 days",
-    annualOccurrences: 3 * 365,
-    rate:    1000,
-    who:     "Shift Leads",
-  },
-  {
-    label:   "Daily diary (per entry)",
-    before:  60,
-    after:   15,
-    freq:    "~15 entries/day × 365 days",
-    annualOccurrences: 15 * 365,
-    rate:    600,
-    who:     "Members",
-  },
-  {
-    label:   "Manager reporting (per week)",
-    before:  480,
-    after:   30,
-    freq:    "2 managers × 52 weeks",
-    annualOccurrences: 2 * 52,
-    rate:    1500,
-    who:     "Managers",
-  },
-  {
-    label:   "Roster build (per week)",
-    before:  480,
-    after:   30,
-    freq:    "2 managers × 52 weeks",
-    annualOccurrences: 2 * 52,
-    rate:    1500,
-    who:     "Managers",
-  },
-  {
-    label:   "Swap coordination (per swap)",
-    before:  45,
-    after:   5,
-    freq:    "~15 swaps/month",
-    annualOccurrences: 15 * 12,
-    rate:    1000,
-    who:     "Shift Leads",
-  },
-] as const;
 
 function fmtMins(m: number): string {
   if (m >= 60) return m % 60 === 0 ? `${m / 60}h` : `${(m / 60).toFixed(1)}h`;
   return `${m}m`;
 }
 function fmtLakh(rupees: number): string {
-  return `₹${(rupees / 100000).toFixed(1)}L`;
+  const L = rupees / 100000;
+  return L >= 100 ? `₹${(rupees / 10000000).toFixed(2)} Cr` : `₹${L.toFixed(1)}L`;
 }
 
-function ValueCreationPanel() {
-  const savings = VALUE_TASKS.map((t) => {
-    const savedMins = t.before - t.after;
-    const annualHrs = (savedMins / 60) * t.annualOccurrences;
-    const annualRs  = Math.round(annualHrs * t.rate);
-    return { ...t, savedMins, annualHrs: Math.round(annualHrs), annualRs };
-  });
+interface VCInputs {
+  // Members (Employees + Contractors) — onsite / offshore split
+  membersOnsite: number;
+  membersOffshore: number;
+  memberRateOnsite: number;
+  memberRateOffshore: number;
+  // Leads — onsite / offshore split
+  leadsOnsite: number;
+  leadsOffshore: number;
+  leadRateOnsite: number;
+  leadRateOffshore: number;
+  // Managers — onsite / offshore split
+  managersOnsite: number;
+  managersOffshore: number;
+  managerRateOnsite: number;
+  managerRateOffshore: number;
+  // Task params
+  incidentsPerDay: number;
+  logSavedMin: number;
+  diarySavedMin: number;
+  liveTrackSavedMin: number;
+  reportSavedMin: number;
+  rosterSavedMin: number;
+  swapsPerMonth: number;
+  swapSavedMin: number;
+}
 
-  const totalRs   = savings.reduce((s, r) => s + r.annualRs, 0);
-  const totalHrs  = savings.reduce((s, r) => s + r.annualHrs, 0);
-  const maxSaving = Math.max(...savings.map((r) => r.annualRs));
-  const maxBefore = Math.max(...VALUE_TASKS.map((t) => t.before)); // 480
+function SliderRow({
+  label, sub, value, min, max, step = 1, unit = "",
+  onChange,
+}: {
+  label: string; sub?: string; value: number; min: number; max: number;
+  step?: number; unit?: string; onChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-700">{label}</p>
+          {sub && <p className="text-[11px] text-gray-400">{sub}</p>}
+        </div>
+        <span className="text-sm font-bold text-teal-700 min-w-[56px] text-right">
+          {value}{unit}
+        </span>
+      </div>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+        style={{ accentColor: "#0F6E56" }}
+      />
+      <div className="flex justify-between text-[10px] text-gray-300">
+        <span>{min}{unit}</span><span>{max}{unit}</span>
+      </div>
+    </div>
+  );
+}
+
+function ValueCreationPanel({ onClose }: { onClose: () => void }) {
+  const [inputs, setInputs] = useState<VCInputs>({
+    membersOnsite:   20, memberRateOnsite:   800,
+    membersOffshore: 30, memberRateOffshore: 400,
+    leadsOnsite:      3, leadRateOnsite:    1200,
+    leadsOffshore:    3, leadRateOffshore:   700,
+    managersOnsite:   1, managerRateOnsite: 2000,
+    managersOffshore: 1, managerRateOffshore: 1200,
+    incidentsPerDay: 10,
+    logSavedMin: 10,
+    diarySavedMin: 10,
+    liveTrackSavedMin: 110,
+    reportSavedMin: 450,
+    rosterSavedMin: 450,
+    swapsPerMonth: 15,
+    swapSavedMin: 40,
+  });
+  const [showAdv, setShowAdv] = useState(false);
+  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
+  const USD_RATE = 83;
+  const setNum = (k: keyof VCInputs) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setInputs(prev => ({ ...prev, [k]: Math.max(0, Number(e.target.value) || 0) }));
+
+  function fmt(rupees: number): string {
+    if (currency === "USD") {
+      const usd = rupees / USD_RATE;
+      return usd >= 100000 ? `$${(usd / 1000).toFixed(0)}k` : `$${Math.round(usd).toLocaleString("en-US")}`;
+    }
+    const L = rupees / 100000;
+    return L >= 100 ? `₹${(rupees / 10000000).toFixed(2)} Cr` : `₹${L.toFixed(1)}L`;
+  }
+
+  // ── Derived totals ────────────────────────────
+  const members  = inputs.membersOnsite + inputs.membersOffshore;
+  const leads    = inputs.leadsOnsite + inputs.leadsOffshore;
+  const managers = inputs.managersOnsite + inputs.managersOffshore;
+
+  // Weighted billing helpers (rupees per hour of saved time for each group)
+  function memberBill(hrs: number) {
+    return hrs * (inputs.membersOnsite * inputs.memberRateOnsite + inputs.membersOffshore * inputs.memberRateOffshore) / Math.max(members, 1);
+  }
+  function leadBill(hrs: number) {
+    return hrs * (inputs.leadsOnsite * inputs.leadRateOnsite + inputs.leadsOffshore * inputs.leadRateOffshore) / Math.max(leads, 1);
+  }
+  function managerBill(hrs: number) {
+    return hrs * (inputs.managersOnsite * inputs.managerRateOnsite + inputs.managersOffshore * inputs.managerRateOffshore) / Math.max(managers, 1);
+  }
+
+  // ── Calculations ──────────────────────────────
+  // Log entry: members × incidentsPerDay × 365 × logSavedMin
+  const logHrs   = (inputs.logSavedMin / 60) * members * inputs.incidentsPerDay * 365;
+  const logRs    = Math.round(memberBill(logHrs));
+
+  // Shift handover: 3 shifts × 365, 100 min saved
+  const hoHrs    = (100 / 60) * 3 * 365;
+  const hoRs     = Math.round(leadBill(hoHrs));
+
+  // Daily diary: members × 365 × diarySavedMin
+  const diaryHrs = (inputs.diarySavedMin / 60) * members * 365;
+  const diaryRs  = Math.round(memberBill(diaryHrs));
+
+  // Live shift tracking: (leads + managers) × 365 × liveTrackSavedMin
+  const liveHrs  = Math.round((inputs.liveTrackSavedMin / 60) * (leads + managers) * 365);
+  const liveRs   = Math.round(
+    leadBill((inputs.liveTrackSavedMin / 60) * leads * 365) +
+    managerBill((inputs.liveTrackSavedMin / 60) * managers * 365)
+  );
+
+  // Reporting & Roster: managers × 52 wks each
+  const repHrs   = (inputs.reportSavedMin / 60) * managers * 52;
+  const repRs    = Math.round(managerBill(repHrs));
+  const rosHrs   = (inputs.rosterSavedMin / 60) * managers * 52;
+  const rosRs    = Math.round(managerBill(rosHrs));
+
+  // Swaps: swapsPerMonth × 12
+  const swpHrs   = (inputs.swapSavedMin / 60) * inputs.swapsPerMonth * 12;
+  const swpRs    = Math.round(leadBill(swpHrs));
 
   const WHO_COLORS: Record<string, string> = {
-    Members:      "bg-indigo-100 text-indigo-700",
-    "Shift Leads":"bg-amber-100 text-amber-700",
-    Managers:     "bg-teal-100 text-teal-700",
+    Members: "bg-indigo-100 text-indigo-700",
+    Leads:   "bg-amber-100 text-amber-700",
+    Managers:"bg-teal-100 text-teal-700",
   };
 
+  const savings = [
+    { label: "Log Entry",          formula: `${members}×${inputs.incidentsPerDay}×365×${inputs.logSavedMin}min`,              hrs: Math.round(logHrs),  rs: logRs,   who: "Members"  },
+    { label: "Shift Handover",     formula: `3×365×100min (2hr→20min)`,                                                       hrs: Math.round(hoHrs),   rs: hoRs,    who: "Leads"    },
+    { label: "Daily Diary",        formula: `${members}×365×${inputs.diarySavedMin}min`,                                      hrs: Math.round(diaryHrs),rs: diaryRs, who: "Members"  },
+    { label: "Live Shift Tracking",formula: `(${leads}+${managers})×365×${inputs.liveTrackSavedMin}min`,                      hrs: liveHrs,             rs: liveRs,  who: "Leads"    },
+    { label: "Weekly Reporting",   formula: `${managers}×52×${inputs.reportSavedMin}min`,                                     hrs: Math.round(repHrs),  rs: repRs,   who: "Managers" },
+    { label: "Roster Build",       formula: `${managers}×52×${inputs.rosterSavedMin}min`,                                     hrs: Math.round(rosHrs),  rs: rosRs,   who: "Managers" },
+    { label: "Swap Coordination",  formula: `${inputs.swapsPerMonth}×12×${inputs.swapSavedMin}min`,                           hrs: Math.round(swpHrs),  rs: swpRs,   who: "Leads"    },
+  ];
+
+  const totalRs     = savings.reduce((s, r) => s + r.rs, 0);
+  const totalHrs    = savings.reduce((s, r) => s + r.hrs, 0);
+  const maxRs       = Math.max(...savings.map(r => r.rs));
+  const totalPeople = members + leads + managers;
+
   return (
-    <div className="space-y-6">
-      {/* Header KPIs */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Annual value created</p>
-            <p className="mt-1 text-2xl font-bold text-teal-600">
-              ₹{(totalRs / 10000000).toFixed(2)} Cr
-            </p>
-            <p className="mt-0.5 text-[11px] text-gray-400">
-              ~${Math.round(totalRs / 83 / 1000)}k USD/year
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Person-hours freed/year</p>
-            <p className="mt-1 text-2xl font-bold text-indigo-600">
-              {totalHrs.toLocaleString("en-IN")}
-            </p>
-            <p className="mt-0.5 text-[11px] text-gray-400">across 58 people</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Per person / year</p>
-            <p className="mt-1 text-2xl font-bold text-violet-600">
-              {Math.round(totalHrs / 58)} hrs
-            </p>
-            <p className="mt-0.5 text-[11px] text-gray-400">
-              ≈ {Math.round(Math.round(totalHrs / 58) / 40)} weeks of work
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Payback period</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">&lt; 1 mo</p>
-            <p className="mt-0.5 text-[11px] text-gray-400">vs. tool cost</p>
-          </CardContent>
-        </Card>
-      </div>
+    /* overlay */
+    <>
+      <div
+        className="fixed inset-0 bg-black/40 z-40"
+        onClick={onClose}
+      />
+      {/* side panel */}
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[28rem] bg-white z-50 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-teal-100 p-2">
+              <SlidersHorizontal className="h-4 w-4 text-teal-700" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Value Creation</p>
+              <p className="text-[11px] text-gray-400">Adjust parameters → see live savings</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* USD / INR toggle */}
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+              <button
+                onClick={() => setCurrency("INR")}
+                className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}
+              >₹ INR</button>
+              <button
+                onClick={() => setCurrency("USD")}
+                className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}
+              >$ USD</button>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
 
-      {/* Before → After time bars + savings table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Time savings — before vs. after ShiftBuddy</CardTitle>
-          <CardDescription className="text-xs">
-            Based on your team's real timings. Bars scaled to longest task (8 h).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-0 p-0">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto] border-b border-gray-100 bg-gray-50/50 px-5 py-2 text-[11px] font-semibold text-gray-500">
-            <span>Task — who / frequency</span>
-            <span className="text-right">Annual saving</span>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+          {/* ── KPI strip ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+              <p className="text-[11px] text-teal-600">Annual value</p>
+              <p className="text-xl font-bold text-teal-700 mt-0.5">{fmt(totalRs)}</p>
+              <p className="text-[11px] text-teal-500">
+                {currency === "INR" ? `~$${Math.round(totalRs / USD_RATE / 1000)}k USD` : `≈ ₹${(totalRs/10000000).toFixed(2)} Cr`}
+              </p>
+            </div>
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+              <p className="text-[11px] text-indigo-600">Hrs freed/year</p>
+              <p className="text-xl font-bold text-indigo-700 mt-0.5">{totalHrs.toLocaleString("en-IN")}</p>
+              <p className="text-[11px] text-indigo-400">
+                ~{Math.round(totalHrs / totalPeople)} hrs/person
+              </p>
+            </div>
           </div>
 
-          {savings.map((row) => {
-            const pctBefore = Math.round((row.before / maxBefore) * 100);
-            const pctAfter  = Math.max(Math.round((row.after  / maxBefore) * 100), 3);
-            return (
-              <div key={row.label} className="border-b border-gray-100 px-5 py-3 last:border-0">
-                <div className="flex items-start justify-between gap-4 mb-2">
+          {/* ── Team Setup — Onsite / Offshore ── */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-semibold text-gray-600 mb-3 flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Team — Onsite / Offshore
+            </p>
+            {/* header row */}
+            <div className="grid grid-cols-[72px_1fr_1fr] gap-2 mb-1.5">
+              <span />
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide text-center">Onsite</p>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide text-center">Offshore</p>
+            </div>
+            {([
+              { label: "Members",  color: "text-indigo-600", cOn: "membersOnsite",   cOf: "membersOffshore",   rOn: "memberRateOnsite",   rOf: "memberRateOffshore"   },
+              { label: "Leads",    color: "text-amber-600",  cOn: "leadsOnsite",     cOf: "leadsOffshore",     rOn: "leadRateOnsite",     rOf: "leadRateOffshore"     },
+              { label: "Managers", color: "text-teal-600",   cOn: "managersOnsite",  cOf: "managersOffshore",  rOn: "managerRateOnsite",  rOf: "managerRateOffshore"  },
+            ] as const).map(({ label, color, cOn, cOf, rOn, rOf }) => {
+              const total = (inputs[cOn] as number) + (inputs[cOf] as number);
+              return (
+                <div key={label} className="grid grid-cols-[72px_1fr_1fr] gap-2 mb-3 items-center">
                   <div>
-                    <p className="text-xs font-medium text-gray-800">{row.label}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{row.freq}</p>
+                    <p className={cn("text-xs font-semibold", color)}>{label}</p>
+                    <p className="text-[10px] text-gray-400">{total} total</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", WHO_COLORS[row.who])}>
-                      {row.who}
-                    </span>
-                    <span className="text-xs font-semibold text-teal-700">
-                      {fmtLakh(row.annualRs)}/yr
-                    </span>
-                  </div>
+                  {[{ countKey: cOn, rateKey: rOn }, { countKey: cOf, rateKey: rOf }].map(({ countKey, rateKey }) => (
+                    <div key={countKey} className="space-y-1">
+                      <input
+                        type="number" min={0} max={500}
+                        value={inputs[countKey] as number}
+                        onChange={setNum(countKey)}
+                        className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs text-center font-semibold focus:border-teal-400 focus:outline-none"
+                      />
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[10px] text-gray-400">₹</span>
+                        <input
+                          type="number" min={0} max={9999}
+                          value={inputs[rateKey] as number}
+                          onChange={setNum(rateKey)}
+                          className="flex-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-center focus:border-teal-400 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-gray-400">/hr</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {/* Before bar */}
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-12 text-right text-[11px] text-red-500 font-medium shrink-0">
-                    {fmtMins(row.before)}
-                  </span>
-                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-red-200"
-                      style={{ width: `${pctBefore}%` }}
-                    />
-                  </div>
-                  <span className="w-14 text-[10px] text-gray-400 shrink-0">Before</span>
-                </div>
-                {/* After bar */}
-                <div className="flex items-center gap-2">
-                  <span className="w-12 text-right text-[11px] text-emerald-600 font-medium shrink-0">
-                    {fmtMins(row.after)}
-                  </span>
-                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-400"
-                      style={{ width: `${pctAfter}%` }}
-                    />
-                  </div>
-                  <span className="w-14 text-[10px] text-gray-400 shrink-0">After</span>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {/* Annual savings bar chart (inline CSS) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Annual savings per category</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[...savings].sort((a, b) => b.annualRs - a.annualRs).map((row) => {
-            const pct = Math.round((row.annualRs / maxSaving) * 100);
-            return (
-              <div key={row.label} className="flex items-center gap-3">
-                <span className="w-44 shrink-0 text-xs text-gray-500 text-right leading-tight">{row.label}</span>
-                <div className="flex-1 h-5 rounded bg-gray-100 overflow-hidden">
-                  <div
-                    className="h-full rounded bg-teal-500 flex items-center px-2"
-                    style={{ width: `${pct}%`, minWidth: "3rem" }}
-                  >
-                    <span className="text-[10px] font-semibold text-white whitespace-nowrap">
-                      {fmtLakh(row.annualRs)}
-                    </span>
-                  </div>
-                </div>
-                <span className="w-16 shrink-0 text-xs text-gray-400 text-right">
-                  {row.annualHrs.toLocaleString("en-IN")} hrs
-                </span>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-2">
-            <span className="text-xs font-semibold text-gray-700">Total</span>
-            <span className="text-sm font-bold text-teal-700">
-              ₹{(totalRs / 10000000).toFixed(2)} Cr — {totalHrs.toLocaleString("en-IN")} hrs/year
-            </span>
+              );
+            })}
           </div>
-        </CardContent>
-      </Card>
 
-      <p className="text-[11px] text-gray-400">
-        Assumptions: ₹600/hr members · ₹1,000/hr leads · ₹1,500/hr managers.
-        Times based on your team's real reported figures. 24/7 operations (365 days).
-      </p>
-    </div>
+          {/* ── Task params ── */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+            <p className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Task Parameters
+            </p>
+            <SliderRow label="Incidents per member per day" sub="Log entry frequency"
+              value={inputs.incidentsPerDay} min={1} max={50}
+              onChange={v => setInputs(p => ({...p, incidentsPerDay: v}))} />
+            <SliderRow label="Log entry time saved" unit=" min"
+              value={inputs.logSavedMin} min={1} max={120}
+              onChange={v => setInputs(p => ({...p, logSavedMin: v}))} />
+            <SliderRow label="Diary entry time saved" unit=" min"
+              value={inputs.diarySavedMin} min={1} max={60}
+              onChange={v => setInputs(p => ({...p, diarySavedMin: v}))} />
+            <SliderRow label="Live tracking saved / day" unit=" min"
+              sub="Per lead/manager — 2 hrs manual → ~10 min with Live Monitor"
+              value={inputs.liveTrackSavedMin} min={10} max={120}
+              onChange={v => setInputs(p => ({...p, liveTrackSavedMin: v}))} />
+          </div>
+
+          {/* Advanced toggleable inputs */}
+          <div>
+            <button
+              onClick={() => setShowAdv(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-teal-600 transition-colors"
+            >
+              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showAdv && "rotate-90")} />
+              {showAdv ? "Hide" : "Show"} advanced inputs
+            </button>
+            {showAdv && (
+              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                <SliderRow label="Reporting saved / week" unit=" min" value={inputs.reportSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, reportSavedMin: v}))} />
+                <SliderRow label="Roster build saved / week" unit=" min" value={inputs.rosterSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, rosterSavedMin: v}))} />
+                <SliderRow label="Swaps / month" value={inputs.swapsPerMonth} min={1} max={100} onChange={v => setInputs(p => ({...p, swapsPerMonth: v}))} />
+                <SliderRow label="Swap coordination saved" unit=" min" value={inputs.swapSavedMin} min={5} max={120} onChange={v => setInputs(p => ({...p, swapSavedMin: v}))} />
+              </div>
+            )}
+          </div>
+
+          {/* ── Breakdown bars ── */}
+          <div>
+            <p className="text-xs font-semibold text-gray-600 mb-3">Savings breakdown</p>
+            <div className="space-y-3">
+              {[...savings].sort((a, b) => b.rs - a.rs).map((row) => {
+                const pct = Math.max(Math.round((row.rs / maxRs) * 100), 4);
+                return (
+                  <div key={row.label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-medium text-gray-800">{row.label}</p>
+                        <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", WHO_COLORS[row.who])}>
+                          {row.who}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-teal-700">{fmt(row.rs)}/yr</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-4 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-teal-500 flex items-center px-2"
+                          style={{ width: `${pct}%`, minWidth: "2.5rem" }}
+                        >
+                          <span className="text-[9px] font-semibold text-white whitespace-nowrap">
+                            {fmt(row.rs)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-gray-400">{row.formula}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Total row ── */}
+          <div className="rounded-xl bg-teal-600 px-5 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-teal-200">Total annual savings</p>
+              <p className="text-2xl font-bold text-white mt-0.5">{fmt(totalRs)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-teal-200">{totalHrs.toLocaleString("en-IN")} hrs/year</p>
+              <p className="text-xs text-teal-300 mt-0.5">~{Math.round(totalHrs / totalPeople)} hrs/person</p>
+              <p className="text-[11px] text-teal-200 mt-1">Payback &lt; 1 month</p>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-gray-400 pb-2">
+            Members: ₹{inputs.memberRateOnsite}/hr onsite · ₹{inputs.memberRateOffshore}/hr offshore.
+            Leads: ₹{inputs.leadRateOnsite}/hr onsite · ₹{inputs.leadRateOffshore}/hr offshore.
+            Managers: ₹{inputs.managerRateOnsite}/hr onsite · ₹{inputs.managerRateOffshore}/hr offshore.
+            Handover fixed at 100 min saved. 365 days/year.
+            {currency === "USD" && ` USD: ₹1 = $${(1/USD_RATE).toFixed(4)}.`}
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -704,6 +845,7 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
   const liveActiveCount = shifts.filter(
     (s) => now >= new Date(s.startTime) && now <= new Date(s.endTime)
   ).length;
+  const [valueOpen, setValueOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -720,13 +862,24 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           colorClass={metrics.unacknowledgedHandovers > 0 ? "text-red-600" : "text-emerald-600"} />
       </div>
 
-      <Tabs defaultValue="projects">
-        <TabsList className="h-9">
-          <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
-          <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
-          <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
-          <TabsTrigger value="value" className="text-xs">Value Creation Estimation</TabsTrigger>
-        </TabsList>
+      <div className="flex items-center justify-between">
+        <Tabs defaultValue="projects" className="flex-1">
+        <div className="flex items-center justify-between mb-0">
+          <TabsList className="h-9">
+            <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
+            <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
+            <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
+          </TabsList>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setValueOpen(true)}
+            className="ml-3 gap-1.5 text-xs border-teal-200 text-teal-700 hover:bg-teal-50"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Value Creation
+          </Button>
+        </div>
 
         {/* Project health table */}
         <TabsContent value="projects" className="mt-4">
@@ -823,11 +976,11 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           <ShiftRosterGrid shifts={shifts} canEdit={false} />
         </TabsContent>
 
-        {/* Value Creation Estimation */}
-        <TabsContent value="value" className="mt-4">
-          <ValueCreationPanel />
-        </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
+
+      {/* Value Creation side panel */}
+      {valueOpen && <ValueCreationPanel onClose={() => setValueOpen(false)} />}
     </div>
   );
 }
