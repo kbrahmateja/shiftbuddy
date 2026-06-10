@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FilePlus, Activity, Calendar, ArrowLeftRight,
   RefreshCw, Users, BarChart3, ShieldCheck, FolderOpen, UserCog,
-  Bell, LogOut, ChevronRight, Settings, ContactRound, X,
+  Bell, LogOut, ChevronRight, Settings, ContactRound, X, TrendingUp,
 } from "lucide-react";
 import { cn, getNavItemsForRole, getInitials, getAvatarColor, ROLE_CONFIG } from "@/lib/utils";
 import { MOCK_PROJECTS } from "@/lib/mock-data";
@@ -23,7 +23,7 @@ import {
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, FilePlus, Activity, Calendar, ArrowLeftRight,
-  RefreshCw, Users, BarChart3, ShieldCheck, FolderOpen, UserCog, ContactRound,
+  RefreshCw, Users, BarChart3, ShieldCheck, FolderOpen, UserCog, ContactRound, TrendingUp,
 };
 
 interface SidebarProps {

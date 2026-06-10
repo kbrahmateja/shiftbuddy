@@ -476,6 +476,8 @@ interface VCInputs {
   // Task params
   incidentsPerDay: number;
   logSavedMin: number;
+  membersPerHandover: number;   // members attending each handover meeting (excl. lead)
+  hoSavedMin: number;           // time saved per person per handover meeting
   diarySavedMin: number;
   liveTrackSavedMin: number;
   reportSavedMin: number;
@@ -515,7 +517,7 @@ function SliderRow({
   );
 }
 
-function ValueCreationPanel({ onClose }: { onClose: () => void }) {
+export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () => void; mode?: "panel" | "page" }) {
   const [inputs, setInputs] = useState<VCInputs>({
     membersOnsite:   20, memberRateOnsite:   800,
     membersOffshore: 30, memberRateOffshore: 400,
@@ -525,6 +527,8 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
     managersOffshore: 1, managerRateOffshore: 1200,
     incidentsPerDay: 10,
     logSavedMin: 10,
+    membersPerHandover: 16,   // 16 members + 1 lead = 17 per handover
+    hoSavedMin: 100,           // 2hr → 20min = 100 min saved per person
     diarySavedMin: 10,
     liveTrackSavedMin: 110,
     reportSavedMin: 450,
@@ -568,9 +572,12 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
   const logHrs   = (inputs.logSavedMin / 60) * members * inputs.incidentsPerDay * 365;
   const logRs    = Math.round(memberBill(logHrs));
 
-  // Shift handover: 3 shifts × 365, 100 min saved
-  const hoHrs    = (100 / 60) * 3 * 365;
-  const hoRs     = Math.round(leadBill(hoHrs));
+  // Shift handover: ALL ATTENDEES (members + 1 lead) × 3 handovers × 365 days
+  // Formula: (membersPerHandover × memberRate + 1 lead × leadRate) × hoSavedMin × 3 × 365
+  const hoMemberHrs = (inputs.hoSavedMin / 60) * inputs.membersPerHandover * 3 * 365;
+  const hoLeadHrs   = (inputs.hoSavedMin / 60) * 1 * 3 * 365; // 1 lead per handover
+  const hoHrs       = Math.round(hoMemberHrs + hoLeadHrs);
+  const hoRs        = Math.round(memberBill(hoMemberHrs) + leadBill(hoLeadHrs));
 
   // Daily diary: members × 365 × diarySavedMin
   const diaryHrs = (inputs.diarySavedMin / 60) * members * 365;
@@ -594,14 +601,15 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
   const swpRs    = Math.round(leadBill(swpHrs));
 
   const WHO_COLORS: Record<string, string> = {
-    Members: "bg-indigo-100 text-indigo-700",
-    Leads:   "bg-amber-100 text-amber-700",
-    Managers:"bg-teal-100 text-teal-700",
+    Members:         "bg-indigo-100 text-indigo-700",
+    Leads:           "bg-amber-100 text-amber-700",
+    Managers:        "bg-teal-100 text-teal-700",
+    "Members+Leads": "bg-purple-100 text-purple-700",
   };
 
   const savings = [
     { label: "Log Entry",          formula: `${members}×${inputs.incidentsPerDay}×365×${inputs.logSavedMin}min`,              hrs: Math.round(logHrs),  rs: logRs,   who: "Members"  },
-    { label: "Shift Handover",     formula: `3×365×100min (2hr→20min)`,                                                       hrs: Math.round(hoHrs),   rs: hoRs,    who: "Leads"    },
+    { label: "Shift Handover",     formula: `(${inputs.membersPerHandover}mem+1lead)×3×365×${inputs.hoSavedMin}min`,         hrs: hoHrs,               rs: hoRs,    who: "Members+Leads" },
     { label: "Daily Diary",        formula: `${members}×365×${inputs.diarySavedMin}min`,                                      hrs: Math.round(diaryHrs),rs: diaryRs, who: "Members"  },
     { label: "Live Shift Tracking",formula: `(${leads}+${managers})×365×${inputs.liveTrackSavedMin}min`,                      hrs: liveHrs,             rs: liveRs,  who: "Leads"    },
     { label: "Weekly Reporting",   formula: `${managers}×52×${inputs.reportSavedMin}min`,                                     hrs: Math.round(repHrs),  rs: repRs,   who: "Managers" },
@@ -614,49 +622,53 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
   const maxRs       = Math.max(...savings.map(r => r.rs));
   const totalPeople = members + leads + managers;
 
+  const isPage = mode === "page";
   return (
-    /* overlay */
     <>
-      <div
-        className="fixed inset-0 bg-black/40 z-40"
-        onClick={onClose}
-      />
-      {/* side panel */}
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[28rem] bg-white z-50 shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-teal-100 p-2">
-              <SlidersHorizontal className="h-4 w-4 text-teal-700" />
+      {!isPage && (
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      )}
+      <div className={isPage
+        ? "space-y-5"
+        : "fixed right-0 top-0 h-screen w-full max-w-[28rem] bg-white z-50 shadow-2xl flex flex-col overflow-hidden"
+      }>
+        {/* Header — only in panel mode */}
+        {!isPage && (
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-lg bg-teal-100 p-2">
+                <SlidersHorizontal className="h-4 w-4 text-teal-700" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Value Creation</p>
+                <p className="text-[11px] text-gray-400">Adjust parameters → see live savings</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">Value Creation</p>
-              <p className="text-[11px] text-gray-400">Adjust parameters → see live savings</p>
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                <button onClick={() => setCurrency("INR")} className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>₹ INR</button>
+                <button onClick={() => setCurrency("USD")} className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>$ USD</button>
+              </div>
+              <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* USD / INR toggle */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
-              <button
-                onClick={() => setCurrency("INR")}
-                className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}
-              >₹ INR</button>
-              <button
-                onClick={() => setCurrency("USD")}
-                className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}
-              >$ USD</button>
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        )}
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Body */}
+        <div className={isPage ? "space-y-5" : "flex-1 overflow-y-auto px-5 py-4 space-y-5"}>
+
+          {/* Currency toggle — shown inline in page mode */}
+          {isPage && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Adjust parameters to see live savings</p>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                <button onClick={() => setCurrency("INR")} className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>₹ INR</button>
+                <button onClick={() => setCurrency("USD")} className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>$ USD</button>
+              </div>
+            </div>
+          )}
 
           {/* ── KPI strip ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -737,6 +749,14 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
             <SliderRow label="Log entry time saved" unit=" min"
               value={inputs.logSavedMin} min={1} max={120}
               onChange={v => setInputs(p => ({...p, logSavedMin: v}))} />
+            <SliderRow label="Members per handover meeting"
+              sub="Employees + contractors attending (excl. 1 lead)"
+              value={inputs.membersPerHandover} min={1} max={50}
+              onChange={v => setInputs(p => ({...p, membersPerHandover: v}))} />
+            <SliderRow label="Handover time saved per person" unit=" min"
+              sub="Each attendee: 2hr meeting → 20min = 100 min saved"
+              value={inputs.hoSavedMin} min={10} max={120}
+              onChange={v => setInputs(p => ({...p, hoSavedMin: v}))} />
             <SliderRow label="Diary entry time saved" unit=" min"
               value={inputs.diarySavedMin} min={1} max={60}
               onChange={v => setInputs(p => ({...p, diarySavedMin: v}))} />
@@ -818,7 +838,7 @@ function ValueCreationPanel({ onClose }: { onClose: () => void }) {
             Members: ₹{inputs.memberRateOnsite}/hr onsite · ₹{inputs.memberRateOffshore}/hr offshore.
             Leads: ₹{inputs.leadRateOnsite}/hr onsite · ₹{inputs.leadRateOffshore}/hr offshore.
             Managers: ₹{inputs.managerRateOnsite}/hr onsite · ₹{inputs.managerRateOffshore}/hr offshore.
-            Handover fixed at 100 min saved. 365 days/year.
+            Handover: {inputs.membersPerHandover} members + 1 lead × {inputs.hoSavedMin} min saved × 3 shifts × 365 days. 365 days/year.
             {currency === "USD" && ` USD: ₹1 = $${(1/USD_RATE).toFixed(4)}.`}
           </p>
         </div>
@@ -845,7 +865,6 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
   const liveActiveCount = shifts.filter(
     (s) => now >= new Date(s.startTime) && now <= new Date(s.endTime)
   ).length;
-  const [valueOpen, setValueOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -862,16 +881,12 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           colorClass={metrics.unacknowledgedHandovers > 0 ? "text-red-600" : "text-emerald-600"} />
       </div>
 
-      {/* Tabs header row — tabs left, Value Creation button right */}
-      <div className="flex items-center justify-between gap-3">
-        <Tabs defaultValue="projects" className="flex-1 min-w-0">
-        <div className="flex items-center gap-3">
-          <TabsList className="h-9">
-            <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
-            <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
-            <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
-          </TabsList>
-        </div>
+      <Tabs defaultValue="projects">
+        <TabsList className="h-9">
+          <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
+          <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
+          <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
+        </TabsList>
 
         {/* Project health table */}
         <TabsContent value="projects" className="mt-4">
@@ -968,22 +983,7 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           <ShiftRosterGrid shifts={shifts} canEdit={false} />
         </TabsContent>
 
-        </Tabs>
-
-        {/* Value Creation button — always visible, right of tabs */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setValueOpen(true)}
-          className="shrink-0 gap-1.5 text-xs border-teal-200 text-teal-700 hover:bg-teal-50"
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Value Creation
-        </Button>
-      </div>
-
-      {/* Value Creation side panel */}
-      {valueOpen && <ValueCreationPanel onClose={() => setValueOpen(false)} />}
+      </Tabs>
     </div>
   );
 }

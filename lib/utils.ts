@@ -468,6 +468,12 @@ export const NAV_ITEMS: NavItem[] = [
     iconName: "BookOpenCheck",
     roles: ["CONTRACTOR", "EMPLOYEE", "LEAD", "MANAGER", "GAP_STAKEHOLDER"],
   },
+  {
+    label: "Value Creation",
+    href: "/dashboard/value-creation",
+    iconName: "TrendingUp",
+    roles: ["MANAGER"],
+  },
 ];
 
 export function getNavItemsForRole(role: UserRole): NavItem[] {
