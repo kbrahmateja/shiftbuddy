@@ -445,6 +445,248 @@ function LeadView({
 }
 
 // ─────────────────────────────────────────────
+// VALUE CREATION ESTIMATION PANEL
+// ─────────────────────────────────────────────
+
+const VALUE_TASKS = [
+  {
+    label:   "Log entry (per occurrence)",
+    before:  120,  // minutes
+    after:   20,
+    freq:    "~12/day × 365 days",
+    annualOccurrences: 12 * 365,
+    rate:    600,  // ₹/hr — member rate
+    who:     "Members",
+  },
+  {
+    label:   "Shift handover (per shift)",
+    before:  120,
+    after:   20,
+    freq:    "3 shifts × 365 days",
+    annualOccurrences: 3 * 365,
+    rate:    1000,
+    who:     "Shift Leads",
+  },
+  {
+    label:   "Daily diary (per entry)",
+    before:  60,
+    after:   15,
+    freq:    "~15 entries/day × 365 days",
+    annualOccurrences: 15 * 365,
+    rate:    600,
+    who:     "Members",
+  },
+  {
+    label:   "Manager reporting (per week)",
+    before:  480,
+    after:   30,
+    freq:    "2 managers × 52 weeks",
+    annualOccurrences: 2 * 52,
+    rate:    1500,
+    who:     "Managers",
+  },
+  {
+    label:   "Roster build (per week)",
+    before:  480,
+    after:   30,
+    freq:    "2 managers × 52 weeks",
+    annualOccurrences: 2 * 52,
+    rate:    1500,
+    who:     "Managers",
+  },
+  {
+    label:   "Swap coordination (per swap)",
+    before:  45,
+    after:   5,
+    freq:    "~15 swaps/month",
+    annualOccurrences: 15 * 12,
+    rate:    1000,
+    who:     "Shift Leads",
+  },
+] as const;
+
+function fmtMins(m: number): string {
+  if (m >= 60) return m % 60 === 0 ? `${m / 60}h` : `${(m / 60).toFixed(1)}h`;
+  return `${m}m`;
+}
+function fmtLakh(rupees: number): string {
+  return `₹${(rupees / 100000).toFixed(1)}L`;
+}
+
+function ValueCreationPanel() {
+  const savings = VALUE_TASKS.map((t) => {
+    const savedMins = t.before - t.after;
+    const annualHrs = (savedMins / 60) * t.annualOccurrences;
+    const annualRs  = Math.round(annualHrs * t.rate);
+    return { ...t, savedMins, annualHrs: Math.round(annualHrs), annualRs };
+  });
+
+  const totalRs   = savings.reduce((s, r) => s + r.annualRs, 0);
+  const totalHrs  = savings.reduce((s, r) => s + r.annualHrs, 0);
+  const maxSaving = Math.max(...savings.map((r) => r.annualRs));
+  const maxBefore = Math.max(...VALUE_TASKS.map((t) => t.before)); // 480
+
+  const WHO_COLORS: Record<string, string> = {
+    Members:      "bg-indigo-100 text-indigo-700",
+    "Shift Leads":"bg-amber-100 text-amber-700",
+    Managers:     "bg-teal-100 text-teal-700",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header KPIs */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-500">Annual value created</p>
+            <p className="mt-1 text-2xl font-bold text-teal-600">
+              ₹{(totalRs / 10000000).toFixed(2)} Cr
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-400">
+              ~${Math.round(totalRs / 83 / 1000)}k USD/year
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-500">Person-hours freed/year</p>
+            <p className="mt-1 text-2xl font-bold text-indigo-600">
+              {totalHrs.toLocaleString("en-IN")}
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-400">across 58 people</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-500">Per person / year</p>
+            <p className="mt-1 text-2xl font-bold text-violet-600">
+              {Math.round(totalHrs / 58)} hrs
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-400">
+              ≈ {Math.round(Math.round(totalHrs / 58) / 40)} weeks of work
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-500">Payback period</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">&lt; 1 mo</p>
+            <p className="mt-0.5 text-[11px] text-gray-400">vs. tool cost</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Before → After time bars + savings table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Time savings — before vs. after ShiftBuddy</CardTitle>
+          <CardDescription className="text-xs">
+            Based on your team's real timings. Bars scaled to longest task (8 h).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-0 p-0">
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_auto] border-b border-gray-100 bg-gray-50/50 px-5 py-2 text-[11px] font-semibold text-gray-500">
+            <span>Task — who / frequency</span>
+            <span className="text-right">Annual saving</span>
+          </div>
+
+          {savings.map((row) => {
+            const pctBefore = Math.round((row.before / maxBefore) * 100);
+            const pctAfter  = Math.max(Math.round((row.after  / maxBefore) * 100), 3);
+            return (
+              <div key={row.label} className="border-b border-gray-100 px-5 py-3 last:border-0">
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <div>
+                    <p className="text-xs font-medium text-gray-800">{row.label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{row.freq}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", WHO_COLORS[row.who])}>
+                      {row.who}
+                    </span>
+                    <span className="text-xs font-semibold text-teal-700">
+                      {fmtLakh(row.annualRs)}/yr
+                    </span>
+                  </div>
+                </div>
+                {/* Before bar */}
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-12 text-right text-[11px] text-red-500 font-medium shrink-0">
+                    {fmtMins(row.before)}
+                  </span>
+                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-red-200"
+                      style={{ width: `${pctBefore}%` }}
+                    />
+                  </div>
+                  <span className="w-14 text-[10px] text-gray-400 shrink-0">Before</span>
+                </div>
+                {/* After bar */}
+                <div className="flex items-center gap-2">
+                  <span className="w-12 text-right text-[11px] text-emerald-600 font-medium shrink-0">
+                    {fmtMins(row.after)}
+                  </span>
+                  <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-400"
+                      style={{ width: `${pctAfter}%` }}
+                    />
+                  </div>
+                  <span className="w-14 text-[10px] text-gray-400 shrink-0">After</span>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Annual savings bar chart (inline CSS) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Annual savings per category</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[...savings].sort((a, b) => b.annualRs - a.annualRs).map((row) => {
+            const pct = Math.round((row.annualRs / maxSaving) * 100);
+            return (
+              <div key={row.label} className="flex items-center gap-3">
+                <span className="w-44 shrink-0 text-xs text-gray-500 text-right leading-tight">{row.label}</span>
+                <div className="flex-1 h-5 rounded bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded bg-teal-500 flex items-center px-2"
+                    style={{ width: `${pct}%`, minWidth: "3rem" }}
+                  >
+                    <span className="text-[10px] font-semibold text-white whitespace-nowrap">
+                      {fmtLakh(row.annualRs)}
+                    </span>
+                  </div>
+                </div>
+                <span className="w-16 shrink-0 text-xs text-gray-400 text-right">
+                  {row.annualHrs.toLocaleString("en-IN")} hrs
+                </span>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-2">
+            <span className="text-xs font-semibold text-gray-700">Total</span>
+            <span className="text-sm font-bold text-teal-700">
+              ₹{(totalRs / 10000000).toFixed(2)} Cr — {totalHrs.toLocaleString("en-IN")} hrs/year
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <p className="text-[11px] text-gray-400">
+        Assumptions: ₹600/hr members · ₹1,000/hr leads · ₹1,500/hr managers.
+        Times based on your team's real reported figures. 24/7 operations (365 days).
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // VIEW: MANAGER — Roster Planner + Ops Metrics
 // ─────────────────────────────────────────────
 
@@ -483,6 +725,7 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
           <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
           <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
+          <TabsTrigger value="value" className="text-xs">Value Creation Estimation</TabsTrigger>
         </TabsList>
 
         {/* Project health table */}
@@ -578,6 +821,11 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
             </Button>
           </div>
           <ShiftRosterGrid shifts={shifts} canEdit={false} />
+        </TabsContent>
+
+        {/* Value Creation Estimation */}
+        <TabsContent value="value" className="mt-4">
+          <ValueCreationPanel />
         </TabsContent>
       </Tabs>
     </div>
