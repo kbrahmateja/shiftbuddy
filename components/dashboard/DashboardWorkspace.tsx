@@ -494,20 +494,26 @@ function sliderBg(value: number, min: number, max: number): React.CSSProperties 
 }
 
 function SliderRow({
-  label, sub, value, min, max, step = 1, unit = "",
+  label, sub, manual, value, min, max, step = 1, unit = "",
   onChange,
 }: {
-  label: string; sub?: string; value: number; min: number; max: number;
+  label: string; sub?: string; manual?: string; value: number; min: number; max: number;
   step?: number; unit?: string; onChange: (v: number) => void;
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-gray-700">{label}</p>
           {sub && <p className="text-[11px] text-gray-400">{sub}</p>}
+          {manual && (
+            <p className="text-[11px] text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              {manual}
+            </p>
+          )}
         </div>
-        <span className="text-sm font-bold text-teal-700 min-w-[56px] text-right">
+        <span className="text-sm font-bold text-teal-700 min-w-[56px] text-right shrink-0">
           {value}{unit}
         </span>
       </div>
@@ -794,6 +800,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
               value={inputs.incidentsPerDay} min={1} max={50}
               onChange={v => setInputs(p => ({...p, incidentsPerDay: v}))} />
             <SliderRow label="Log entry time saved" unit=" min"
+              manual="Manual today: ~20–30 min per entry (searching docs, formatting, broadcasting)"
               value={inputs.logSavedMin} min={1} max={120}
               onChange={v => setInputs(p => ({...p, logSavedMin: v}))} />
             <SliderRow label="Members per handover meeting"
@@ -801,14 +808,17 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
               value={inputs.membersPerHandover} min={1} max={50}
               onChange={v => setInputs(p => ({...p, membersPerHandover: v}))} />
             <SliderRow label="Handover time saved per person" unit=" min"
-              sub="Each attendee: 2hr meeting → 20min = 100 min saved"
+              sub="Each of the 17 attendees (16 members + 1 lead) per meeting"
+              manual="Manual today: 2 hrs per attendee × 3 shifts = 6 hrs/day"
               value={inputs.hoSavedMin} min={10} max={120}
               onChange={v => setInputs(p => ({...p, hoSavedMin: v}))} />
             <SliderRow label="Diary entry time saved" unit=" min"
+              manual="Manual today: ~1 hr per entry (free-form Word, no template, prone to omissions)"
               value={inputs.diarySavedMin} min={1} max={60}
               onChange={v => setInputs(p => ({...p, diarySavedMin: v}))} />
             <SliderRow label="Live tracking saved / day" unit=" min"
-              sub="Per lead/manager — 2 hrs manual → ~10 min with Live Monitor"
+              sub="Per lead/manager — checking who is active, calling members, cross-referencing roster"
+              manual="Manual today: ~2 hrs per lead/manager per day"
               value={inputs.liveTrackSavedMin} min={10} max={120}
               onChange={v => setInputs(p => ({...p, liveTrackSavedMin: v}))} />
           </div>
@@ -824,10 +834,16 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
             </button>
             {showAdv && (
               <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-                <SliderRow label="Reporting saved / week" unit=" min" value={inputs.reportSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, reportSavedMin: v}))} />
-                <SliderRow label="Roster build saved / week" unit=" min" value={inputs.rosterSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, rosterSavedMin: v}))} />
+                <SliderRow label="Reporting saved / week" unit=" min"
+                manual="Manual today: ~8 hrs/week (aggregating 7 project docs into one report)"
+                value={inputs.reportSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, reportSavedMin: v}))} />
+                <SliderRow label="Roster build saved / week" unit=" min"
+                manual="Manual today: ~8 hrs/week (Excel, weekoff checks, conflict detection)"
+                value={inputs.rosterSavedMin} min={30} max={480} step={10} onChange={v => setInputs(p => ({...p, rosterSavedMin: v}))} />
                 <SliderRow label="Swaps / month" value={inputs.swapsPerMonth} min={1} max={100} onChange={v => setInputs(p => ({...p, swapsPerMonth: v}))} />
-                <SliderRow label="Swap coordination saved" unit=" min" value={inputs.swapSavedMin} min={5} max={120} onChange={v => setInputs(p => ({...p, swapSavedMin: v}))} />
+                <SliderRow label="Swap coordination saved" unit=" min"
+                manual="Manual today: ~45 min per swap (calls, WhatsApp, manual roster update)"
+                value={inputs.swapSavedMin} min={5} max={120} onChange={v => setInputs(p => ({...p, swapSavedMin: v}))} />
               </div>
             )}
           </div>
