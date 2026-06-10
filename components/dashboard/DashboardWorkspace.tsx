@@ -484,6 +484,11 @@ interface VCInputs {
   rosterSavedMin: number;
   swapsPerMonth: number;
   swapSavedMin: number;
+  // Investment
+  devCount: number;
+  devWeeks: number;
+  devRateINR: number;      // always stored in INR
+  maintCostPerYear: number; // always stored in INR
 }
 
 function sliderBg(value: number, min: number, max: number): React.CSSProperties {
@@ -548,11 +553,23 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
     rosterSavedMin: 450,
     swapsPerMonth: 15,
     swapSavedMin: 40,
+    // Investment defaults
+    devCount: 3, devWeeks: 17, devRateINR: 1200, maintCostPerYear: 600000,
   });
   const [showAdv, setShowAdv] = useState(false);
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [years, setYears] = useState(1);
   const USD_RATE = 83;
+  // Rate display helpers — inputs always stored in INR, shown in current currency
+  const rateSymbol = currency === "USD" ? "$" : "₹";
+  const rateMax    = currency === "USD" ? 120 : 10000;
+  const rateStep   = currency === "USD" ? 1   : 50;
+  function dispRate(rupees: number) {
+    return currency === "USD" ? Math.round(rupees / USD_RATE) : rupees;
+  }
+  function storeRate(displayed: number): number {
+    return currency === "USD" ? Math.round(displayed * USD_RATE) : displayed;
+  }
   const setNum = (k: keyof VCInputs) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setInputs(prev => ({ ...prev, [k]: Math.max(0, Number(e.target.value) || 0) }));
 
@@ -638,6 +655,13 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
   const maxRs       = Math.max(...savings.map(r => r.rs));
   const totalPeople = members + leads + managers;
 
+  // ── Investment calculations ──────────────────────────────────
+  const devCost      = Math.round(inputs.devCount * inputs.devWeeks * 40 * inputs.devRateINR);
+  const netMultiYear = totalRs * years - devCost - inputs.maintCostPerYear * years;
+  const paybackMonths = (totalRs - inputs.maintCostPerYear) > 0
+    ? Math.ceil(devCost / ((totalRs - inputs.maintCostPerYear) / 12))
+    : 999;
+
   const isPage = mode === "page";
   return (
     <>
@@ -700,7 +724,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
           {/* ── KPI strip ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
-              <p className="text-[11px] text-teal-600">{years > 1 ? `${years}-Year Value` : "Annual Value"}</p>
+              <p className="text-[11px] text-teal-600">{years > 1 ? `${years}-Year Gross Savings` : "Annual Gross Savings"}</p>
               <p className="text-xl font-bold text-teal-700 mt-0.5">{fmt(totalRs * years)}</p>
               <p className="text-[11px] text-teal-500">
                 {currency === "INR"
@@ -767,19 +791,19 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
                         </div>
                         {/* Rate: number + slider */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-gray-500 w-10 shrink-0">₹/hr</span>
+                          <span className="text-[10px] text-gray-500 w-10 shrink-0">{rateSymbol}/hr</span>
                           <input
-                            type="number" min={0} max={maxRate}
-                            value={inputs[rateKey] as number}
-                            onChange={setNum(rateKey)}
+                            type="number" min={0} max={rateMax}
+                            value={dispRate(inputs[rateKey] as number)}
+                            onChange={e => setInputs(p => ({ ...p, [rateKey]: storeRate(Number(e.target.value)) }))}
                             className="w-14 shrink-0 rounded border border-gray-200 bg-white px-1.5 py-1 text-xs text-center font-semibold focus:border-teal-400 focus:outline-none"
                           />
                           <input
-                            type="range" min={0} max={maxRate} step={50}
-                            value={inputs[rateKey] as number}
-                            onChange={e => setInputs(p => ({ ...p, [rateKey]: Number(e.target.value) }))}
+                            type="range" min={0} max={rateMax} step={rateStep}
+                            value={dispRate(inputs[rateKey] as number)}
+                            onChange={e => setInputs(p => ({ ...p, [rateKey]: storeRate(Number(e.target.value)) }))}
                             className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
-                            style={sliderBg(inputs[rateKey] as number, 0, maxRate)}
+                            style={sliderBg(dispRate(inputs[rateKey] as number), 0, rateMax)}
                           />
                         </div>
                       </div>
@@ -848,6 +872,111 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
             )}
           </div>
 
+          {/* ── Investment section ── */}
+          <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-4 space-y-4">
+            <p className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-rose-500 rotate-180" />
+              Investment — Development &amp; Maintenance
+            </p>
+
+            {/* Dev team sliders */}
+            <SliderRow
+              label="Developers on the project"
+              manual="e.g. 1 frontend + 1 backend + 1 fullstack/lead"
+              value={inputs.devCount} min={1} max={10}
+              onChange={v => setInputs(p => ({...p, devCount: v}))}
+            />
+            <SliderRow
+              label="Development duration (weeks)"
+              manual="16–18 weeks recommended for full feature delivery"
+              value={inputs.devWeeks} min={4} max={52}
+              onChange={v => setInputs(p => ({...p, devWeeks: v}))}
+            />
+            <SliderRow
+              label={`Dev hourly rate`}
+              unit={` ${rateSymbol}/hr`}
+              manual={`Billing rate per developer — ${rateSymbol}${dispRate(800)}–${rateSymbol}${dispRate(2000)}/hr typical`}
+              value={dispRate(inputs.devRateINR)}
+              min={Math.round(dispRate(200))} max={Math.round(dispRate(5000))} step={rateStep}
+              onChange={v => setInputs(p => ({...p, devRateINR: storeRate(v)}))}
+            />
+
+            {/* Dev cost summary pill */}
+            <div className="flex items-center justify-between rounded-lg bg-rose-100 border border-rose-200 px-3 py-2">
+              <p className="text-[11px] text-rose-700">
+                {inputs.devCount} devs × {inputs.devWeeks} wks × 40 hrs × {rateSymbol}{dispRate(inputs.devRateINR)}/hr
+              </p>
+              <p className="text-sm font-bold text-rose-700">{fmt(devCost)} <span className="font-normal text-[10px]">one-time</span></p>
+            </div>
+
+            {/* Maintenance slider */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-700">Maintenance cost / year</p>
+                  <p className="text-[11px] text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                    Bug fixes, enhancements, hosting (~0.5 dev/yr from Year 2)
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-rose-600 min-w-[64px] text-right shrink-0">
+                  {fmt(inputs.maintCostPerYear)}/yr
+                </span>
+              </div>
+              <input
+                type="range" min={0} max={5000000} step={50000}
+                value={inputs.maintCostPerYear}
+                onChange={e => setInputs(p => ({...p, maintCostPerYear: Number(e.target.value)}))}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                style={sliderBg(inputs.maintCostPerYear, 0, 5000000)}
+              />
+              <div className="flex justify-between text-[10px] text-gray-300">
+                <span>₹0</span><span>₹50L/yr</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── NET ROI summary ── */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+            <p className="text-xs font-semibold text-gray-600 mb-3">
+              NET ROI — {years > 1 ? `${years}-Year` : "Year 1"} (Savings − Development − Maintenance)
+            </p>
+            {/* Year-by-year net table */}
+            <div className="space-y-1.5">
+              {[1,2,3,4,5].map(y => {
+                const gross  = totalRs * y;
+                const invest = devCost + inputs.maintCostPerYear * y;
+                const net    = gross - invest;
+                const isSelected = y === years;
+                return (
+                  <div key={y} className={cn(
+                    "flex items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-all",
+                    isSelected ? "bg-emerald-200 border border-emerald-300" : "bg-white border border-gray-100"
+                  )}>
+                    <span className={cn("font-semibold w-12", isSelected ? "text-emerald-800" : "text-gray-500")}>
+                      Year {y}
+                    </span>
+                    <span className="text-gray-400 text-[10px] flex-1 text-center">
+                      {fmt(gross)} − {fmt(devCost + inputs.maintCostPerYear * y)}
+                    </span>
+                    <span className={cn(
+                      "font-bold min-w-[72px] text-right",
+                      net >= 0 ? (isSelected ? "text-emerald-700" : "text-emerald-600") : "text-rose-600"
+                    )}>
+                      {net >= 0 ? "+" : ""}{fmt(net)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="pt-1 flex items-center justify-between">
+              <p className="text-[11px] text-emerald-700">
+                Payback period: <span className="font-bold">{paybackMonths <= 1 ? "< 1 month" : `${paybackMonths} months`}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">Dev cost recovered in Year 1</p>
+            </div>
+          </div>
+
           {/* ── Breakdown bars ── */}
           <div>
             <p className="text-xs font-semibold text-gray-600 mb-3">
@@ -887,26 +1016,43 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
           </div>
 
           {/* ── Total row ── */}
-          <div className="rounded-xl bg-teal-600 px-5 py-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-teal-200">
-                Total {years > 1 ? `${years}-year` : "annual"} savings
-              </p>
-              <p className="text-2xl font-bold text-white mt-0.5">{fmt(totalRs * years)}</p>
+          <div className="rounded-xl bg-teal-700 px-5 py-4 space-y-2">
+            {/* Gross */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-teal-200">Gross savings ({years > 1 ? `${years} yrs` : "annual"})</span>
+              <span className="font-semibold text-white">+ {fmt(totalRs * years)}</span>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-teal-200">{(totalHrs * years).toLocaleString("en-IN")} hrs{years > 1 ? ` (${years} yrs)` : "/year"}</p>
-              <p className="text-xs text-teal-300 mt-0.5">~{Math.round(totalHrs / totalPeople)} hrs/person/yr</p>
-              <p className="text-[11px] text-teal-200 mt-1">Payback &lt; 1 month</p>
+            {/* Dev cost */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-rose-200">Development cost (one-time)</span>
+              <span className="font-semibold text-rose-300">− {fmt(devCost)}</span>
+            </div>
+            {/* Maintenance */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-amber-200">Maintenance × {years} yr{years > 1 ? "s" : ""}</span>
+              <span className="font-semibold text-amber-300">− {fmt(inputs.maintCostPerYear * years)}</span>
+            </div>
+            <div className="border-t border-teal-500 pt-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-teal-200">NET {years > 1 ? `${years}-year` : "Year 1"} value</p>
+                <p className="text-2xl font-bold text-white mt-0.5">{fmt(netMultiYear)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-teal-200">{(totalHrs * years).toLocaleString("en-IN")} hrs freed</p>
+                <p className="text-xs text-teal-300 mt-0.5">~{Math.round(totalHrs / totalPeople)} hrs/person/yr</p>
+                <p className="text-[11px] text-emerald-300 mt-1 font-semibold">
+                  Payback: {paybackMonths <= 1 ? "< 1 month" : `${paybackMonths} months`}
+                </p>
+              </div>
             </div>
           </div>
 
           <p className="text-[10px] text-gray-400 pb-2">
-            Members: ₹{inputs.memberRateOnsite}/hr onsite · ₹{inputs.memberRateOffshore}/hr offshore.
-            Leads: ₹{inputs.leadRateOnsite}/hr onsite · ₹{inputs.leadRateOffshore}/hr offshore.
-            Managers: ₹{inputs.managerRateOnsite}/hr onsite · ₹{inputs.managerRateOffshore}/hr offshore.
-            Handover: {inputs.membersPerHandover} members + 1 lead × {inputs.hoSavedMin} min saved × 3 shifts × 365 days. 365 days/year.
-            {currency === "USD" && ` USD: ₹1 = $${(1/USD_RATE).toFixed(4)}.`}
+            Members: {rateSymbol}{dispRate(inputs.memberRateOnsite)}/hr onsite · {rateSymbol}{dispRate(inputs.memberRateOffshore)}/hr offshore.
+            Leads: {rateSymbol}{dispRate(inputs.leadRateOnsite)}/hr onsite · {rateSymbol}{dispRate(inputs.leadRateOffshore)}/hr offshore.
+            Managers: {rateSymbol}{dispRate(inputs.managerRateOnsite)}/hr onsite · {rateSymbol}{dispRate(inputs.managerRateOffshore)}/hr offshore.
+            Handover: {inputs.membersPerHandover} members + 1 lead × {inputs.hoSavedMin} min saved × 3 shifts × 365 days.
+            {currency === "USD" && ` Exchange rate: ₹1 = $${(1/USD_RATE).toFixed(4)}.`}
           </p>
         </div>
       </div>
