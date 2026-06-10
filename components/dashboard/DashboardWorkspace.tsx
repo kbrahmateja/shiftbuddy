@@ -538,6 +538,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
   });
   const [showAdv, setShowAdv] = useState(false);
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
+  const [years, setYears] = useState(1);
   const USD_RATE = 83;
   const setNum = (k: keyof VCInputs) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setInputs(prev => ({ ...prev, [k]: Math.max(0, Number(e.target.value) || 0) }));
@@ -661,11 +662,22 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
 
           {/* Currency toggle — shown inline in page mode */}
           {isPage && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs text-gray-500">Adjust parameters to see live savings</p>
-              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
-                <button onClick={() => setCurrency("INR")} className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>₹ INR</button>
-                <button onClick={() => setCurrency("USD")} className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>$ USD</button>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                  <button onClick={() => setCurrency("INR")} className={cn("px-2.5 py-1 transition-colors", currency === "INR" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>₹ INR</button>
+                  <button onClick={() => setCurrency("USD")} className={cn("px-2.5 py-1 transition-colors", currency === "USD" ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>$ USD</button>
+                </div>
+                <select
+                  value={years}
+                  onChange={e => setYears(Number(e.target.value))}
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 focus:border-teal-400 focus:outline-none cursor-pointer"
+                >
+                  {[1,2,3,4,5].map(y => (
+                    <option key={y} value={y}>{y} Year{y > 1 ? "s" : ""}</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
@@ -673,68 +685,92 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
           {/* ── KPI strip ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
-              <p className="text-[11px] text-teal-600">Annual value</p>
-              <p className="text-xl font-bold text-teal-700 mt-0.5">{fmt(totalRs)}</p>
+              <p className="text-[11px] text-teal-600">{years > 1 ? `${years}-Year Value` : "Annual Value"}</p>
+              <p className="text-xl font-bold text-teal-700 mt-0.5">{fmt(totalRs * years)}</p>
               <p className="text-[11px] text-teal-500">
-                {currency === "INR" ? `~$${Math.round(totalRs / USD_RATE / 1000)}k USD` : `≈ ₹${(totalRs/10000000).toFixed(2)} Cr`}
+                {currency === "INR" ? `~$${Math.round(totalRs * years / USD_RATE / 1000)}k USD` : `≈ ₹${(totalRs * years / 10000000).toFixed(2)} Cr`}
               </p>
             </div>
             <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
-              <p className="text-[11px] text-indigo-600">Hrs freed/year</p>
-              <p className="text-xl font-bold text-indigo-700 mt-0.5">{totalHrs.toLocaleString("en-IN")}</p>
+              <p className="text-[11px] text-indigo-600">Hrs freed{years > 1 ? ` (${years} yrs)` : "/year"}</p>
+              <p className="text-xl font-bold text-indigo-700 mt-0.5">{(totalHrs * years).toLocaleString("en-IN")}</p>
               <p className="text-[11px] text-indigo-400">
-                ~{Math.round(totalHrs / totalPeople)} hrs/person
+                ~{Math.round(totalHrs / totalPeople)} hrs/person/yr
               </p>
             </div>
           </div>
 
           {/* ── Team Setup — Onsite / Offshore ── */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-xs font-semibold text-gray-600 mb-3 flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-gray-600 mb-4 flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
               Team — Onsite / Offshore
             </p>
-            {/* header row */}
-            <div className="grid grid-cols-[72px_1fr_1fr] gap-2 mb-1.5">
-              <span />
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide text-center">Onsite</p>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide text-center">Offshore</p>
-            </div>
-            {([
-              { label: "Members",  color: "text-indigo-600", cOn: "membersOnsite",   cOf: "membersOffshore",   rOn: "memberRateOnsite",   rOf: "memberRateOffshore"   },
-              { label: "Leads",    color: "text-amber-600",  cOn: "leadsOnsite",     cOf: "leadsOffshore",     rOn: "leadRateOnsite",     rOf: "leadRateOffshore"     },
-              { label: "Managers", color: "text-teal-600",   cOn: "managersOnsite",  cOf: "managersOffshore",  rOn: "managerRateOnsite",  rOf: "managerRateOffshore"  },
-            ] as const).map(({ label, color, cOn, cOf, rOn, rOf }) => {
-              const total = (inputs[cOn] as number) + (inputs[cOf] as number);
-              return (
-                <div key={label} className="grid grid-cols-[72px_1fr_1fr] gap-2 mb-3 items-center">
-                  <div>
-                    <p className={cn("text-xs font-semibold", color)}>{label}</p>
-                    <p className="text-[10px] text-gray-400">{total} total</p>
-                  </div>
-                  {[{ countKey: cOn, rateKey: rOn }, { countKey: cOf, rateKey: rOf }].map(({ countKey, rateKey }) => (
-                    <div key={countKey} className="space-y-1">
-                      <input
-                        type="number" min={0} max={500}
-                        value={inputs[countKey] as number}
-                        onChange={setNum(countKey)}
-                        className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs text-center font-semibold focus:border-teal-400 focus:outline-none"
-                      />
-                      <div className="flex items-center gap-0.5">
-                        <span className="text-[10px] text-gray-400">₹</span>
-                        <input
-                          type="number" min={0} max={9999}
-                          value={inputs[rateKey] as number}
-                          onChange={setNum(rateKey)}
-                          className="flex-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-center focus:border-teal-400 focus:outline-none"
-                        />
-                        <span className="text-[10px] text-gray-400">/hr</span>
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {([
+                { label: "Members",  color: "text-indigo-700", bg: "bg-indigo-50/80", border: "border-indigo-200",
+                  cOn: "membersOnsite" as const,  cOf: "membersOffshore" as const,
+                  rOn: "memberRateOnsite" as const,  rOf: "memberRateOffshore" as const,  maxCount: 200, maxRate: 3000 },
+                { label: "Leads",    color: "text-amber-700",  bg: "bg-amber-50/80",  border: "border-amber-200",
+                  cOn: "leadsOnsite" as const,    cOf: "leadsOffshore" as const,
+                  rOn: "leadRateOnsite" as const,    rOf: "leadRateOffshore" as const,    maxCount: 50,  maxRate: 5000 },
+                { label: "Managers", color: "text-teal-700",   bg: "bg-teal-50/80",   border: "border-teal-200",
+                  cOn: "managersOnsite" as const, cOf: "managersOffshore" as const,
+                  rOn: "managerRateOnsite" as const, rOf: "managerRateOffshore" as const, maxCount: 20,  maxRate: 8000 },
+              ]).map(({ label, color, bg, border, cOn, cOf, rOn, rOf, maxCount, maxRate }) => {
+                const total = (inputs[cOn] as number) + (inputs[cOf] as number);
+                return (
+                  <div key={label} className={cn("rounded-xl border p-3 space-y-3", border, bg)}>
+                    <div className="flex items-center justify-between">
+                      <p className={cn("text-sm font-bold", color)}>{label}</p>
+                      <span className="text-[11px] text-gray-500 font-medium">{total} total</span>
                     </div>
-                  ))}
-                </div>
-              );
-            })}
+                    {([
+                      { side: "Onsite",   countKey: cOn, rateKey: rOn },
+                      { side: "Offshore", countKey: cOf, rateKey: rOf },
+                    ] as const).map(({ side, countKey, rateKey }) => (
+                      <div key={side}>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">{side}</p>
+                        {/* Count: number + slider */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] text-gray-500 w-10 shrink-0">Count</span>
+                          <input
+                            type="number" min={0} max={maxCount}
+                            value={inputs[countKey] as number}
+                            onChange={setNum(countKey)}
+                            className="w-14 shrink-0 rounded border border-gray-200 bg-white px-1.5 py-1 text-xs text-center font-semibold focus:border-teal-400 focus:outline-none"
+                          />
+                          <input
+                            type="range" min={0} max={maxCount}
+                            value={inputs[countKey] as number}
+                            onChange={e => setInputs(p => ({ ...p, [countKey]: Number(e.target.value) }))}
+                            className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
+                            style={{ accentColor: "#0F6E56" }}
+                          />
+                        </div>
+                        {/* Rate: number + slider */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-gray-500 w-10 shrink-0">₹/hr</span>
+                          <input
+                            type="number" min={0} max={maxRate}
+                            value={inputs[rateKey] as number}
+                            onChange={setNum(rateKey)}
+                            className="w-14 shrink-0 rounded border border-gray-200 bg-white px-1.5 py-1 text-xs text-center font-semibold focus:border-teal-400 focus:outline-none"
+                          />
+                          <input
+                            type="range" min={0} max={maxRate} step={50}
+                            value={inputs[rateKey] as number}
+                            onChange={e => setInputs(p => ({ ...p, [rateKey]: Number(e.target.value) }))}
+                            className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
+                            style={{ accentColor: "#0F6E56" }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* ── Task params ── */}
@@ -787,7 +823,9 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
 
           {/* ── Breakdown bars ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-600 mb-3">Savings breakdown</p>
+            <p className="text-xs font-semibold text-gray-600 mb-3">
+              Savings breakdown{years > 1 ? ` — ${years}-year projection` : " — annual"}
+            </p>
             <div className="space-y-3">
               {[...savings].sort((a, b) => b.rs - a.rs).map((row) => {
                 const pct = Math.max(Math.round((row.rs / maxRs) * 100), 4);
@@ -800,7 +838,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
                           {row.who}
                         </span>
                       </div>
-                      <span className="text-xs font-bold text-teal-700">{fmt(row.rs)}/yr</span>
+                      <span className="text-xs font-bold text-teal-700">{fmt(row.rs * years)}{years > 1 ? `/${years}yr` : "/yr"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-4 rounded-full bg-gray-100 overflow-hidden">
@@ -809,12 +847,12 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
                           style={{ width: `${pct}%`, minWidth: "2.5rem" }}
                         >
                           <span className="text-[9px] font-semibold text-white whitespace-nowrap">
-                            {fmt(row.rs)}
+                            {fmt(row.rs * years)}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <p className="mt-0.5 text-[10px] text-gray-400">{row.formula}</p>
+                    <p className="mt-0.5 text-[10px] text-gray-400">{row.formula} × {years}yr</p>
                   </div>
                 );
               })}
@@ -824,12 +862,14 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
           {/* ── Total row ── */}
           <div className="rounded-xl bg-teal-600 px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-teal-200">Total annual savings</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{fmt(totalRs)}</p>
+              <p className="text-xs text-teal-200">
+                Total {years > 1 ? `${years}-year` : "annual"} savings
+              </p>
+              <p className="text-2xl font-bold text-white mt-0.5">{fmt(totalRs * years)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-teal-200">{totalHrs.toLocaleString("en-IN")} hrs/year</p>
-              <p className="text-xs text-teal-300 mt-0.5">~{Math.round(totalHrs / totalPeople)} hrs/person</p>
+              <p className="text-xs text-teal-200">{(totalHrs * years).toLocaleString("en-IN")} hrs{years > 1 ? ` (${years} yrs)` : "/year"}</p>
+              <p className="text-xs text-teal-300 mt-0.5">~{Math.round(totalHrs / totalPeople)} hrs/person/yr</p>
               <p className="text-[11px] text-teal-200 mt-1">Payback &lt; 1 month</p>
             </div>
           </div>

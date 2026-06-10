@@ -5,7 +5,7 @@ import { SlidersHorizontal } from "lucide-react";
 
 export default function ValueCreationPage() {
   return (
-    <div className="p-4 sm:p-6 max-w-lg">
+    <div className="p-4 sm:p-6">
       {/* Page header */}
       <div className="mb-6 flex items-center gap-3">
         <div className="rounded-lg bg-teal-100 p-2.5">
