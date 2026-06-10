@@ -546,7 +546,9 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
   function fmt(rupees: number): string {
     if (currency === "USD") {
       const usd = rupees / USD_RATE;
-      return usd >= 100000 ? `$${(usd / 1000).toFixed(0)}k` : `$${Math.round(usd).toLocaleString("en-US")}`;
+      if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+      if (usd >= 1_000)     return `$${(usd / 1_000).toFixed(0)}k`;
+      return `$${Math.round(usd).toLocaleString("en-US")}`;
     }
     const L = rupees / 100000;
     return L >= 100 ? `₹${(rupees / 10000000).toFixed(2)} Cr` : `₹${L.toFixed(1)}L`;
@@ -688,7 +690,9 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
               <p className="text-[11px] text-teal-600">{years > 1 ? `${years}-Year Value` : "Annual Value"}</p>
               <p className="text-xl font-bold text-teal-700 mt-0.5">{fmt(totalRs * years)}</p>
               <p className="text-[11px] text-teal-500">
-                {currency === "INR" ? `~$${Math.round(totalRs * years / USD_RATE / 1000)}k USD` : `≈ ₹${(totalRs * years / 10000000).toFixed(2)} Cr`}
+                {currency === "INR"
+                  ? (() => { const u = totalRs * years / USD_RATE; return u >= 1_000_000 ? `~$${(u/1_000_000).toFixed(2)}M USD` : `~$${Math.round(u/1_000)}k USD`; })()
+                  : `≈ ₹${(totalRs * years / 10000000).toFixed(2)} Cr`}
               </p>
             </div>
             <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
@@ -710,13 +714,13 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
               {([
                 { label: "Members",  color: "text-indigo-700", bg: "bg-indigo-50/80", border: "border-indigo-200",
                   cOn: "membersOnsite" as const,  cOf: "membersOffshore" as const,
-                  rOn: "memberRateOnsite" as const,  rOf: "memberRateOffshore" as const,  maxCount: 200, maxRate: 3000 },
+                  rOn: "memberRateOnsite" as const,  rOf: "memberRateOffshore" as const,  maxCount: 200, maxRate: 10000 },
                 { label: "Leads",    color: "text-amber-700",  bg: "bg-amber-50/80",  border: "border-amber-200",
                   cOn: "leadsOnsite" as const,    cOf: "leadsOffshore" as const,
-                  rOn: "leadRateOnsite" as const,    rOf: "leadRateOffshore" as const,    maxCount: 50,  maxRate: 5000 },
+                  rOn: "leadRateOnsite" as const,    rOf: "leadRateOffshore" as const,    maxCount: 50,  maxRate: 10000 },
                 { label: "Managers", color: "text-teal-700",   bg: "bg-teal-50/80",   border: "border-teal-200",
                   cOn: "managersOnsite" as const, cOf: "managersOffshore" as const,
-                  rOn: "managerRateOnsite" as const, rOf: "managerRateOffshore" as const, maxCount: 20,  maxRate: 8000 },
+                  rOn: "managerRateOnsite" as const, rOf: "managerRateOffshore" as const, maxCount: 20,  maxRate: 10000 },
               ]).map(({ label, color, bg, border, cOn, cOf, rOn, rOf, maxCount, maxRate }) => {
                 const total = (inputs[cOn] as number) + (inputs[cOf] as number);
                 return (
