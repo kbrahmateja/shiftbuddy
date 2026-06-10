@@ -486,6 +486,13 @@ interface VCInputs {
   swapSavedMin: number;
 }
 
+function sliderBg(value: number, min: number, max: number): React.CSSProperties {
+  const pct = max === min ? 0 : Math.round(((value - min) / (max - min)) * 100);
+  return {
+    background: `linear-gradient(to right, #0d9488 0%, #0d9488 ${pct}%, #e5e7eb ${pct}%, #e5e7eb 100%)`,
+  };
+}
+
 function SliderRow({
   label, sub, value, min, max, step = 1, unit = "",
   onChange,
@@ -508,7 +515,7 @@ function SliderRow({
         type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-        style={{ accentColor: "#0F6E56" }}
+        style={sliderBg(value, min, max)}
       />
       <div className="flex justify-between text-[10px] text-gray-300">
         <span>{min}{unit}</span><span>{max}{unit}</span>
@@ -749,7 +756,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
                             value={inputs[countKey] as number}
                             onChange={e => setInputs(p => ({ ...p, [countKey]: Number(e.target.value) }))}
                             className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
-                            style={{ accentColor: "#0F6E56" }}
+                            style={sliderBg(inputs[countKey] as number, 0, maxCount)}
                           />
                         </div>
                         {/* Rate: number + slider */}
@@ -766,7 +773,7 @@ export function ValueCreationPanel({ onClose, mode = "panel" }: { onClose?: () =
                             value={inputs[rateKey] as number}
                             onChange={e => setInputs(p => ({ ...p, [rateKey]: Number(e.target.value) }))}
                             className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
-                            style={{ accentColor: "#0F6E56" }}
+                            style={sliderBg(inputs[rateKey] as number, 0, maxRate)}
                           />
                         </div>
                       </div>
