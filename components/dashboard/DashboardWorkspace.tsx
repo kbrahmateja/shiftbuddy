@@ -862,23 +862,15 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
           colorClass={metrics.unacknowledgedHandovers > 0 ? "text-red-600" : "text-emerald-600"} />
       </div>
 
-      <div className="flex items-center justify-between">
-        <Tabs defaultValue="projects" className="flex-1">
-        <div className="flex items-center justify-between mb-0">
+      {/* Tabs header row — tabs left, Value Creation button right */}
+      <div className="flex items-center justify-between gap-3">
+        <Tabs defaultValue="projects" className="flex-1 min-w-0">
+        <div className="flex items-center gap-3">
           <TabsList className="h-9">
             <TabsTrigger value="projects" className="text-xs">Project Health</TabsTrigger>
             <TabsTrigger value="feed" className="text-xs">All Updates</TabsTrigger>
             <TabsTrigger value="roster" className="text-xs">Roster Overview</TabsTrigger>
           </TabsList>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setValueOpen(true)}
-            className="ml-3 gap-1.5 text-xs border-teal-200 text-teal-700 hover:bg-teal-50"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Value Creation
-          </Button>
         </div>
 
         {/* Project health table */}
@@ -977,6 +969,17 @@ function ManagerView({ user, logs, shifts, metrics, projectSummaries }: ManagerV
         </TabsContent>
 
         </Tabs>
+
+        {/* Value Creation button — always visible, right of tabs */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setValueOpen(true)}
+          className="shrink-0 gap-1.5 text-xs border-teal-200 text-teal-700 hover:bg-teal-50"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Value Creation
+        </Button>
       </div>
 
       {/* Value Creation side panel */}
